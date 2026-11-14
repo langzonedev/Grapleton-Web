@@ -1,4 +1,4 @@
-const CACHE = 'grapleton-shell-v1';
+const CACHE = 'grapleton-shell-v2';
 const scope = self.registration.scope;
 const files = [
   './', './index.html', './style.css', './app.js', './store.js', './manifest.webmanifest',
@@ -12,6 +12,10 @@ self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache =>
     cache.addAll(files.map(file => new Request(new URL(file, scope), { cache: 'reload' })))));
 });
+self.addEventListener('message', event => {
+  if (event.data === 'grapleton:apply-update') event.waitUntil(self.skipWaiting());
+});
+
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     for (const name of await caches.keys()) {

@@ -122,7 +122,10 @@ input::placeholder,textarea::placeholder { color:#75656b; opacity:1; }
 .settings h2 { margin-bottom:15px; }
 .settings .rack-panel + .rack-panel { margin-top:12px; }
 .settings p { margin-top:6px; }
-footer { border-top:1px solid var(--line); padding:16px 0 26px; display:flex; justify-content:space-between; gap:10px; color:var(--muted); font-size:.84rem; }
+#app-update { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; }
+#update-status:not(:empty) { flex-basis:100%; }
+#update-button { border-color:var(--line); }
+footer { flex-wrap:wrap; align-items:center; border-top:1px solid var(--line); padding:16px 0 26px; display:flex; justify-content:space-between; gap:10px; color:var(--muted); font-size:.84rem; }
 dialog { width:min(560px,100% - 24px); max-height:calc(100dvh - 24px); overflow:auto; padding:clamp(14px,4vw,26px); border:1px solid var(--line); border-radius:16px; background:var(--card); color:var(--ink); }
 dialog::backdrop { background:#24121bc0; }
 .dialog-head { display:flex; align-items:start; justify-content:space-between; gap:8px; margin-bottom:16px; }

@@ -486,6 +486,102 @@ document.addEventListener('keydown', event => {
   }
 });
 
+async function setupAppUpdates() {
+  const workers = navigator.serviceWorker;
+  const registration = await workers.register('./sw.js', { updateViaCache: 'none' });
+  const button = $('#update-button');
+  const status = $('#update-status');
+  let controller = workers.controller;
+  let reloadAvailable = false;
+  let applying = false;
+  let activationTimeout;
+
+  function showAvailable() {
+    button.textContent = reloadAvailable || registration.waiting ? 'Update app' : 'Check for updates';
+  }
+
+  function waitForInstall(worker) {
+    return new Promise(resolve => {
+      function checkState() {
+        if (!['installed', 'activating', 'activated', 'redundant'].includes(worker.state)) return;
+        worker.removeEventListener('statechange', checkState);
+        resolve(worker.state);
+      }
+      worker.addEventListener('statechange', checkState);
+      checkState();
+    });
+  }
+
+  workers.addEventListener('controllerchange', () => {
+    const previous = controller;
+    controller = workers.controller;
+    if (!previous || !controller || previous === controller) return;
+    reloadAvailable = true;
+    clearTimeout(activationTimeout);
+    if (applying && !dialog.open && !saving) {
+      location.reload();
+      return;
+    }
+    applying = false;
+    button.disabled = false;
+    showAvailable();
+    status.textContent = 'An update is ready. Finish any open edits, then update the app.';
+  });
+
+  function watchInstall() {
+    if (!registration.installing) return;
+    waitForInstall(registration.installing).then(() => {
+      if (button.disabled) return;
+      showAvailable();
+      if (registration.waiting) status.textContent = 'An update is ready.';
+    });
+  }
+
+  registration.addEventListener('updatefound', watchInstall);
+  watchInstall();
+  showAvailable();
+  $('#app-update').hidden = false;
+
+  button.addEventListener('click', async () => {
+    button.disabled = true;
+    try {
+      if (!reloadAvailable && !registration.waiting) {
+        status.textContent = 'Checking for updates…';
+        if (!navigator.onLine) throw new Error('Offline');
+        await registration.update();
+        const installing = registration.installing;
+        if (installing && await waitForInstall(installing) === 'redundant') {
+          throw new Error('Update download failed');
+        }
+      }
+      if (dialog.open || saving) {
+        status.textContent = 'Finish your edit, then try again.';
+      } else if (reloadAvailable) {
+        location.reload();
+        return;
+      } else if (registration.waiting) {
+        applying = true;
+        status.textContent = 'Updating Grapleton…';
+        registration.waiting.postMessage('grapleton:apply-update');
+        activationTimeout = setTimeout(() => {
+          applying = false;
+          button.disabled = false;
+          showAvailable();
+          status.textContent = 'The update is taking longer than expected. Try again shortly.';
+        }, 10000);
+        return;
+      } else {
+        status.textContent = 'Grapleton is up to date.';
+      }
+    } catch {
+      applying = false;
+      status.textContent = 'Could not check for updates. Try again when you’re online.';
+    }
+    showAvailable();
+    button.disabled = false;
+  });
+}
+
 async function refresh() {
   const next = await readCellar();
   if (saving || dialog.open || next.revision <= cellar.revision) return;
@@ -505,7 +601,7 @@ try {
   });
   window.addEventListener('focus', () => refresh().catch(console.warn));
   dialog.addEventListener('close', () => refresh().catch(console.warn));
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(console.warn);
+  if ('serviceWorker' in navigator) setupAppUpdates().catch(console.warn);
 } catch {
   view.innerHTML = '<p role="alert">Grapleton could not open browser storage. Enable site storage and reload to use your cellar.</p>';
   document.querySelectorAll('[data-action]').forEach(button => { button.disabled = true; });

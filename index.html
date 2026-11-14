@@ -39,7 +39,13 @@
   </section>
   <div id="view"></div>
 </main>
-<footer><span>Grapleton</span><span>Stored in this browser</span></footer>
+<footer>
+  <span>Grapleton</span><span>Stored in this browser</span>
+  <div id="app-update" hidden>
+    <button class="quiet" id="update-button" type="button">Check for updates</button>
+    <span id="update-status" role="status"></span>
+  </div>
+</footer>
 <dialog id="dialog"></dialog>
 <div id="toast" role="status" aria-live="polite"></div>
 <template id="bottle-form">
