@@ -2,6 +2,12 @@
 const months = Array.from({ length: 12 }, (_, i) =>
   new Intl.DateTimeFormat('en-AU', { month: 'long' }).format(new Date(2024, i, 1)));
 const pad = n => String(n).padStart(2, '0');
+const isoToDisplay = value => /^\d{4}-\d{2}-\d{2}$/.test(value || '')
+  ? value.slice(8, 10) + '/' + value.slice(5, 7) + '/' + value.slice(0, 4) : (value || '');
+const displayToIso = value => {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value || '');
+  return match ? match[3] + '-' + match[2] + '-' + match[1] : (value || '');
+};
 const makeButton = (label, aria, action, className = '') => {
   const button = document.createElement('button');
   button.type = 'button';
@@ -22,8 +28,9 @@ function dismiss() {
 function showCalendar(input) {
   if (active?.trigger === input) { dismiss(); return; }
   dismiss();
-  const initial = /^\d{4}-\d{2}-\d{2}$/.test(input.value)
-    ? input.value.split('-').map(Number) : null;
+  const stored = displayToIso(input.value);
+  const initial = /^\d{4}-\d{2}-\d{2}$/.test(stored)
+    ? stored.split('-').map(Number) : null;
   const now = new Date();
   let year = initial?.[0] ?? now.getFullYear();
   let month = (initial?.[1] ?? now.getMonth() + 1) - 1;
@@ -58,7 +65,7 @@ function showCalendar(input) {
   active = { popup, trigger: input };
 
   function choose(value) {
-    input.value = value;
+    input.value = isoToDisplay(value);
     input.dispatchEvent(new Event('input', { bubbles: true }));
     input.dispatchEvent(new Event('change', { bubbles: true }));
     dismiss();
@@ -124,7 +131,7 @@ function showCalendar(input) {
       const count = new Date(year, month + 1, 0).getDate();
       for (let d = 1; d <= count; d++) {
         const value = year + '-' + pad(month + 1) + '-' + pad(d);
-        const selected = input.value === value;
+        const selected = displayToIso(input.value) === value;
         const button = makeButton(String(d), value, () => choose(value), selected ? 'selected' : '');
         button.setAttribute('aria-pressed', String(selected));
         days.append(button);
@@ -140,7 +147,9 @@ function enhance(form) {
   for (const input of form.querySelectorAll('input[type="date"]')) {
     if (input.dataset.calendarEnhanced) continue;
     input.dataset.calendarEnhanced = 'true';
+    const original = input.value;
     input.type = 'text';
+    input.value = isoToDisplay(original);
     input.readOnly = true;
     input.placeholder = 'Select date';
     input.classList.add('calendar-date-field');
