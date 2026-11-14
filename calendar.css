@@ -1,8 +1,7 @@
 
 /* Year-jump calendar for purchase and drink-by dates */
-.calendar-input-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;position:relative}
-.calendar-input-row input[type=date]{min-width:135px;flex:1 1 145px}
-.calendar-trigger{flex:0 0 auto}
+.calendar-date-field{width:100%;min-width:0;cursor:pointer;background-image:none}
+.calendar-date-field[readonly]{cursor:pointer}
 .grapleton-calendar{position:relative;z-index:5;margin-top:8px;width:min(310px,100%);padding:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 25px #24121b26}
 .calendar-heading{display:grid;grid-template-columns:32px minmax(80px,1fr) 74px 32px;gap:5px;align-items:center;margin-bottom:10px}
 .calendar-heading button{padding:4px;min-height:36px}
