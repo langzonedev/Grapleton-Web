@@ -397,7 +397,7 @@ function editBottle(key) {
     for (const field of ['purchased', 'drinkBy']) values[field] = storedDate(values[field]);
     if (values.purchasePrice !== '') {
       const price = Number(values.purchasePrice);
-      if (!/^\\d+(?:\\.\\d{1,2})?$/.test(values.purchasePrice) || !Number.isFinite(price) || price > 999999999) {
+      if (!/^\d+(?:\.\d{1,2})?$/.test(values.purchasePrice) || !Number.isFinite(price) || price > 999999999) {
         form.elements.purchasePrice.setCustomValidity('Enter a valid price in AUD, with up to two decimal places.');
         form.elements.purchasePrice.reportValidity();
         return;
