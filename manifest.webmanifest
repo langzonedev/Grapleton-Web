@@ -1,0 +1,25 @@
+{
+  "id": "./",
+  "name": "Grapleton",
+  "short_name": "Grapleton",
+  "description": "Your personal wine cellar.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f8f4ee",
+  "theme_color": "#361b27",
+  "icons": [
+    {
+      "src": "./assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

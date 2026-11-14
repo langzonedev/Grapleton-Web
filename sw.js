@@ -1,0 +1,32 @@
+const CACHE = 'grapleton-shell-v1';
+const scope = self.registration.scope;
+const files = [
+  './', './index.html', './style.css', './app.js', './store.js', './manifest.webmanifest',
+  './assets/grapleton-mark.svg', './assets/icon-192.png', './assets/icon-512.png',
+  './assets/bottle-red.svg', './assets/bottle-white.svg', './assets/bottle-rose.svg',
+  './assets/bottle-sparkling.svg', './assets/bottle-other.svg', './assets/cellar-serif.woff2',
+];
+const shellURLs = new Set(files.map(file => new URL(file, scope).href));
+
+self.addEventListener('install', event => {
+  event.waitUntil(caches.open(CACHE).then(cache =>
+    cache.addAll(files.map(file => new Request(new URL(file, scope), { cache: 'reload' })))));
+});
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
+    for (const name of await caches.keys()) {
+      if (name.startsWith('grapleton-shell-') && name !== CACHE) await caches.delete(name);
+    }
+    await self.clients.claim();
+  })());
+});
+self.addEventListener('fetch', event => {
+  const { request } = event;
+  if (request.method !== 'GET' || !request.url.startsWith(scope)) return;
+  const navigation = request.mode === 'navigate';
+  if (!navigation && !shellURLs.has(request.url)) return;
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE);
+    return (await cache.match(navigation ? scope : request)) ?? fetch(request);
+  })());
+});

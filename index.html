@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#361b27">
+<meta name="description" content="Organise your wine rack and find every bottle in your personal cellar.">
+<title>Grapleton — Your wine cellar</title>
+<link rel="icon" href="./assets/grapleton-mark.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./assets/icon-192.png">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="stylesheet" href="./style.css">
+<script type="module" src="./app.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="header">
+  <div class="header-inner">
+    <a class="brand" href="#rack"><img src="./assets/grapleton-mark.svg" width="35" height="35" alt="">grapleton<span class="period">.</span></a>
+    <button class="menu-toggle quiet" id="menu-toggle" aria-expanded="false" aria-controls="nav" aria-label="Open menu">☰</button>
+    <nav id="nav" aria-label="Main navigation">
+      <a href="#rack">Rack</a><a href="#collection">Collection</a><a href="#settings">Settings</a>
+    </nav>
+    <button class="primary header-add" data-action="add">＋ <span>Add bottle</span></button>
+  </div>
+</header>
+<main id="main" tabindex="-1">
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-copy">
+      <h1 id="hero-title">My cellar<span class="period">.</span></h1>
+      <p>A place for every bottle.</p>
+      <div id="hero-stats" class="hero-stats"></div>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <i></i><i></i><i></i>
+      <img class="hero-white" src="./assets/bottle-white.svg" alt="">
+      <img class="hero-red" src="./assets/bottle-red.svg" alt="">
+    </div>
+  </section>
+  <div id="view"></div>
+</main>
+<footer><span>Grapleton</span><span>Stored in this browser</span></footer>
+<dialog id="dialog"></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+<template id="bottle-form">
+  <form id="edit-form">
+    <div class="photo-edit">
+      <div id="photo-preview" class="photo-preview"></div>
+      <div><strong>Bottle photo</strong>
+        <div class="photo-actions">
+          <button type="button" class="secondary" data-action="camera">Take photo</button>
+          <button type="button" class="secondary" data-action="library">Choose photo</button>
+          <button type="button" class="quiet" data-action="clear-photo" hidden>Remove photo</button>
+        </div>
+        <input type="file" id="camera" accept="image/*" capture="environment" hidden>
+        <input type="file" id="library" accept="image/*" hidden>
+        <p id="photo-status" class="muted" aria-live="polite"></p>
+      </div>
+    </div>
+    <div class="fields">
+      <label class="wide">Wine name<input name="name" maxlength="120" required placeholder="e.g. Hilltop Shiraz"></label>
+      <label>Wine style<select name="style"><option>Red</option><option>White</option><option>Rosé</option><option>Sparkling</option><option>Other</option></select></label>
+      <label>Vintage<input name="vintage" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="e.g. 2022"></label>
+      <label class="wide">Grape variety<input name="variety" maxlength="80" placeholder="e.g. Shiraz"></label>
+      <label class="wide">Rack position<select name="slot" required></select></label>
+    </div>
+    <details class="extra"><summary>Purchase, pairings &amp; notes</summary>
+      <div class="fields">
+        <label>Purchase date<input type="date" name="purchased"></label>
+        <label>Drink by<input type="date" name="drinkBy"></label>
+        <label class="wide">Purchase reason<input name="reason" maxlength="200" placeholder="e.g. Anniversary dinner"></label>
+        <label class="wide">Food pairings<input name="pairings" maxlength="200" placeholder="e.g. Grilled lamb"></label>
+        <label class="wide">Notes<textarea name="notes" maxlength="1000" rows="3" placeholder="Producer, region, tasting notes…"></textarea></label>
+      </div>
+    </details>
+    <p class="error" role="alert"></p>
+    <div class="dialog-actions"><button type="button" class="secondary" data-action="cancel-edit">Cancel</button><button class="primary" type="submit">Save bottle</button></div>
+  </form>
+</template>
+</body>
+</html>
