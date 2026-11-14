@@ -228,11 +228,18 @@ function storedDate(value) {
   return match[3] + '-' + match[2] + '-' + match[1];
 }
 
+const audPrice = new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' });
+function displayPurchasePrice(value) {
+  if (value === undefined || value === null || value === '') return '';
+  const price = Number(value);
+  return Number.isFinite(price) && price >= 0 ? audPrice.format(price) : '';
+}
+
 function showBottle(key) {
   const rack = currentRack();
   const bottle = rack.bottles[key];
   const extra = [
-    ['Purchased', bottle.purchased], ['Purchase reason', bottle.reason],
+    ['Purchased', bottle.purchased], ['Purchase price', displayPurchasePrice(bottle.purchasePrice)], ['Purchase reason', bottle.reason],
     ['Drink by', bottle.drinkBy], ['Food pairings', bottle.pairings], ['Notes', bottle.notes],
   ].filter(([, value]) => value);
   const lookup = new URL('https://www.google.com/search');
@@ -334,7 +341,7 @@ function editBottle(key) {
   if (existing?.variety && !varieties.includes(existing.variety)) {
     variety.add(new Option(existing.variety, existing.variety));
   }
-  for (const field of ['name', 'style', 'vintage', 'variety', 'purchased', 'drinkBy', 'reason', 'pairings', 'notes']) {
+  for (const field of ['name', 'style', 'vintage', 'variety', 'purchased', 'purchasePrice', 'drinkBy', 'reason', 'pairings', 'notes']) {
     if (existing?.[field]) form.elements[field].value = existing[field];
   }
   let photo = existing?.photo ?? null;
@@ -383,10 +390,22 @@ function editBottle(key) {
     });
   }
   form.elements.name.addEventListener('input', () => form.elements.name.setCustomValidity(''));
+  form.elements.purchasePrice.addEventListener('input', () => form.elements.purchasePrice.setCustomValidity(''));
   form.addEventListener('submit', event => {
     event.preventDefault();
     const values = Object.fromEntries([...new FormData(form)].map(([name, value]) => [name, value.trim()]));
     for (const field of ['purchased', 'drinkBy']) values[field] = storedDate(values[field]);
+    if (values.purchasePrice !== '') {
+      const price = Number(values.purchasePrice);
+      if (!/^\\d+(?:\\.\\d{1,2})?$/.test(values.purchasePrice) || !Number.isFinite(price) || price > 999999999) {
+        form.elements.purchasePrice.setCustomValidity('Enter a valid price in AUD, with up to two decimal places.');
+        form.elements.purchasePrice.reportValidity();
+        return;
+      }
+      values.purchasePrice = price.toFixed(2);
+    }
+    form.elements.purchasePrice.setCustomValidity('');
+
     if (!values.name) {
       form.elements.name.setCustomValidity('Enter a wine name.');
       form.elements.name.reportValidity();
