@@ -214,6 +214,20 @@ dialog.addEventListener('cancel', event => {
   if (saving) event.preventDefault();
 });
 
+// Dates are stored as YYYY-MM-DD and presented in Australian day/month/year order.
+function displayDate(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value || '')
+    ? value.slice(8, 10) + '/' + value.slice(5, 7) + '/' + value.slice(0, 4)
+    : value;
+}
+function storedDate(value) {
+  if (!value) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
+  if (!match) return value;
+  return match[3] + '-' + match[2] + '-' + match[1];
+}
+
 function showBottle(key) {
   const rack = currentRack();
   const bottle = rack.bottles[key];
@@ -226,10 +240,10 @@ function showBottle(key) {
   openDialog(bottle.name, '<div class="detail-top"><div class="detail-art ' + styles[bottle.style] + '">' +
     photoMarkup(bottle) + '</div><div><span class="position">' + escape(rack.name) + ' · Slot ' + slotName(key) + '</span><p>' +
     escape([bottle.vintage, bottle.variety || bottle.style].filter(Boolean).join(' · ')) + '</p>' +
-    (bottle.drinkBy ? '<p>Drink by <strong>' + escape(bottle.drinkBy) + '</strong></p>' : '') +
+    (bottle.drinkBy ? '<p>Drink by <strong>' + escape(displayDate(bottle.drinkBy)) + '</strong></p>' : '') +
     '<a href="' + escape(lookup.href) + '" rel="noopener noreferrer" target="_blank">Look up wine ↗</a></div></div>' +
     (extra.length ? '<details class="extra"><summary>Purchase, pairings &amp; notes</summary><dl>' +
-      extra.map(([label, value]) => '<dt>' + label + '</dt><dd>' + escape(value) + '</dd>').join('') +
+      extra.map(([label, value]) => '<dt>' + label + '</dt><dd>' + escape(label === 'Purchased' || label === 'Drink by' ? displayDate(value) : value) + '</dd>').join('') +
       '</dl></details>' : '') +
     '<div class="dialog-actions"><button class="quiet danger" data-action="remove" data-key="' + key + '">Remove</button>' +
     (route === 'collection' ? '<button class="secondary" data-action="locate" data-key="' + key + '">Show in rack</button>' : '') +
@@ -372,6 +386,7 @@ function editBottle(key) {
   form.addEventListener('submit', event => {
     event.preventDefault();
     const values = Object.fromEntries([...new FormData(form)].map(([name, value]) => [name, value.trim()]));
+    for (const field of ['purchased', 'drinkBy']) values[field] = storedDate(values[field]);
     if (!values.name) {
       form.elements.name.setCustomValidity('Enter a wine name.');
       form.elements.name.reportValidity();
