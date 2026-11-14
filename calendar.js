@@ -1,108 +1,145 @@
-// Enhanced calendar for bottle dates. Keeps the existing ISO date inputs as the source of truth.
-const months = Array.from({length: 12}, (_, i) => new Intl.DateTimeFormat('en-AU', {month: 'long'}).format(new Date(2024, i, 1)));
+// Touch-first calendar. The original form field stores ISO YYYY-MM-DD dates.
+const months = Array.from({ length: 12 }, (_, i) =>
+  new Intl.DateTimeFormat('en-AU', { month: 'long' }).format(new Date(2024, i, 1)));
 const pad = n => String(n).padStart(2, '0');
-let active;
-
+const makeButton = (label, aria, action, className = '') => {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = label;
+  button.setAttribute('aria-label', aria);
+  if (className) button.className = className;
+  button.addEventListener('click', action);
+  return button;
+};
+let active = null;
 function dismiss() {
   if (!active) return;
-  active.popup.remove();
-  active.trigger.setAttribute('aria-expanded', 'false');
+  const { popup, trigger } = active;
+  popup.remove();
+  trigger.setAttribute('aria-expanded', 'false');
   active = null;
 }
-function showCalendar(input, trigger) {
-  if (active?.trigger === trigger) { dismiss(); return; }
+function showCalendar(input) {
+  if (active?.trigger === input) { dismiss(); return; }
   dismiss();
-  const initial = /^\d{4}-\d{2}-\d{2}$/.test(input.value) ? input.value.split('-').map(Number) : null;
+  const initial = /^\d{4}-\d{2}-\d{2}$/.test(input.value)
+    ? input.value.split('-').map(Number) : null;
   const now = new Date();
   let year = initial?.[0] ?? now.getFullYear();
   let month = (initial?.[1] ?? now.getMonth() + 1) - 1;
+  let view = 'days';
+  let yearPage = Math.floor(year / 12) * 12;
   const popup = document.createElement('div');
   popup.className = 'grapleton-calendar';
   popup.setAttribute('role', 'group');
   popup.setAttribute('aria-label', input.name === 'drinkBy' ? 'Choose drink-by date' : 'Choose purchase date');
   const heading = document.createElement('div');
   heading.className = 'calendar-heading';
-  const prev = document.createElement('button');
-  prev.type = 'button'; prev.textContent = '‹'; prev.setAttribute('aria-label', 'Previous month');
-  const next = document.createElement('button');
-  next.type = 'button'; next.textContent = '›'; next.setAttribute('aria-label', 'Next month');
-  const monthSelect = document.createElement('select');
-  monthSelect.setAttribute('aria-label', 'Month');
-  months.forEach((name, index) => monthSelect.add(new Option(name, String(index))));
-  const yearInput = document.createElement('input');
-  yearInput.type = 'number'; yearInput.min = '1800'; yearInput.max = '2200';
-  yearInput.step = '1'; yearInput.inputMode = 'numeric'; yearInput.setAttribute('aria-label', 'Year');
-  const days = document.createElement('div');
-  days.className = 'calendar-days';
-  heading.append(prev, monthSelect, yearInput, next);
-  const labels = document.createElement('div');
-  labels.className = 'calendar-weekdays';
-  ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach((d, i) => {
-    const cell = document.createElement('span'); cell.textContent = d;
-    cell.setAttribute('aria-label', ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][i]);
-    labels.append(cell);
-  });
+  const prev = makeButton('‹', 'Previous', () => navigate(-1), 'calendar-arrow');
+  const next = makeButton('›', 'Next', () => navigate(1), 'calendar-arrow');
+  const title = makeButton('', 'Change month and year', () => {
+    view = view === 'days' ? 'months' : 'years';
+    paint();
+  }, 'calendar-title');
+  const panel = document.createElement('div');
   const actions = document.createElement('div');
   actions.className = 'calendar-actions';
-  const today = document.createElement('button');
-  today.type = 'button'; today.textContent = 'Today';
-  const clear = document.createElement('button');
-  clear.type = 'button'; clear.textContent = 'Clear';
-  actions.append(today, clear);
-  popup.append(heading, labels, days, actions);
-  trigger.after(popup);
-  trigger.setAttribute('aria-expanded', 'true');
-  active = {popup, trigger};
-  function paint() {
-    monthSelect.value = String(month);
-    yearInput.value = String(year);
-    days.replaceChildren();
-    const offset = (new Date(year, month, 1).getDay() + 6) % 7;
-    const length = new Date(year, month + 1, 0).getDate();
-    for (let i = 0; i < offset; i++) days.append(document.createElement('span'));
-    for (let d = 1; d <= length; d++) {
-      const button = document.createElement('button');
-      button.type = 'button'; button.textContent = String(d);
-      const iso = year + '-' + pad(month + 1) + '-' + pad(d);
-      button.setAttribute('aria-label', iso);
-      if (input.value === iso) { button.classList.add('selected'); button.setAttribute('aria-pressed', 'true'); }
-      button.addEventListener('click', () => choose(iso));
-      days.append(button);
-    }
-  }
+  actions.append(
+    makeButton('Today', 'Select today', () => {
+      const n = new Date();
+      choose(n.getFullYear() + '-' + pad(n.getMonth() + 1) + '-' + pad(n.getDate()));
+    }),
+    makeButton('Clear', 'Clear date', () => choose(''))
+  );
+  heading.append(prev, title, next);
+  popup.append(heading, panel, actions);
+  input.after(popup);
+  input.setAttribute('aria-expanded', 'true');
+  active = { popup, trigger: input };
+
   function choose(value) {
     input.value = value;
-    input.dispatchEvent(new Event('input', {bubbles: true}));
-    input.dispatchEvent(new Event('change', {bubbles: true}));
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
     dismiss();
-    trigger.focus();
+    input.focus({ preventScroll: true });
   }
-  function move(delta) {
-    const date = new Date(year, month + delta, 1);
-    year = date.getFullYear(); month = date.getMonth(); paint();
-  }
-  prev.addEventListener('click', () => move(-1));
-  next.addEventListener('click', () => move(1));
-  monthSelect.addEventListener('change', () => { month = Number(monthSelect.value); paint(); });
-  yearInput.addEventListener('change', () => {
-    const nextYear = Number(yearInput.value);
-    if (Number.isInteger(nextYear) && nextYear >= 1800 && nextYear <= 2200) year = nextYear;
+  function navigate(delta) {
+    if (view === 'years') {
+      yearPage = Math.max(1800, Math.min(2184, yearPage + delta * 12));
+    } else if (view === 'months') {
+      year = Math.max(1800, Math.min(2200, year + delta));
+      yearPage = Math.floor(year / 12) * 12;
+    } else {
+      const date = new Date(year, month + delta, 1);
+      if (date.getFullYear() < 1800 || date.getFullYear() > 2200) return;
+      year = date.getFullYear();
+      month = date.getMonth();
+      yearPage = Math.floor(year / 12) * 12;
+    }
     paint();
-  });
-  yearInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); yearInput.blur(); } });
-  today.addEventListener('click', () => {
-    const n = new Date(); choose(n.getFullYear() + '-' + pad(n.getMonth() + 1) + '-' + pad(n.getDate()));
-  });
-  clear.addEventListener('click', () => choose(''));
+  }
+  function paint() {
+    panel.replaceChildren();
+    if (view === 'years') {
+      title.textContent = yearPage + ' – ' + (yearPage + 11);
+      title.setAttribute('aria-label', 'Select a year');
+      panel.className = 'calendar-choice-grid';
+      for (let y = yearPage; y < yearPage + 12; y++) {
+        const selected = y === year;
+        const btn = makeButton(String(y), 'Year ' + y, () => {
+          year = y; view = 'months'; paint();
+        }, 'calendar-choice' + (selected ? ' selected' : ''));
+        btn.setAttribute('aria-pressed', String(selected));
+        panel.append(btn);
+      }
+    } else if (view === 'months') {
+      title.textContent = String(year) + ' · Select month';
+      title.setAttribute('aria-label', 'Choose year, currently ' + year);
+      panel.className = 'calendar-choice-grid';
+      months.forEach((name, i) => {
+        const selected = i === month;
+        const btn = makeButton(name.slice(0, 3), name, () => {
+          month = i; view = 'days'; paint();
+        }, 'calendar-choice' + (selected ? ' selected' : ''));
+        btn.setAttribute('aria-pressed', String(selected));
+        panel.append(btn);
+      });
+    } else {
+      title.textContent = months[month] + ' ' + year + ' ▾';
+      title.setAttribute('aria-label', 'Select month or year, currently ' + months[month] + ' ' + year);
+      panel.className = 'calendar-day-panel';
+      const weekdays = document.createElement('div');
+      weekdays.className = 'calendar-weekdays';
+      ['M','T','W','T','F','S','S'].forEach((name, i) => {
+        const cell = document.createElement('span');
+        cell.textContent = name;
+        cell.setAttribute('aria-label', ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][i]);
+        weekdays.append(cell);
+      });
+      const days = document.createElement('div');
+      days.className = 'calendar-days';
+      const offset = (new Date(year, month, 1).getDay() + 6) % 7;
+      for (let n = 0; n < offset; n++) days.append(document.createElement('span'));
+      const count = new Date(year, month + 1, 0).getDate();
+      for (let d = 1; d <= count; d++) {
+        const value = year + '-' + pad(month + 1) + '-' + pad(d);
+        const selected = input.value === value;
+        const button = makeButton(String(d), value, () => choose(value), selected ? 'selected' : '');
+        button.setAttribute('aria-pressed', String(selected));
+        days.append(button);
+      }
+      panel.append(weekdays, days);
+    }
+    prev.disabled = view === 'years' ? yearPage <= 1800 : year <= 1800 && (view !== 'days' || month === 0);
+    next.disabled = view === 'years' ? yearPage >= 2184 : year >= 2200 && (view !== 'days' || month === 11);
+  }
   paint();
-  yearInput.focus();
 }
 function enhance(form) {
   for (const input of form.querySelectorAll('input[type="date"]')) {
     if (input.dataset.calendarEnhanced) continue;
     input.dataset.calendarEnhanced = 'true';
-    // Replace the browser-native date picker with one tap target.
-    // The underlying value remains YYYY-MM-DD for existing saved bottles.
     input.type = 'text';
     input.readOnly = true;
     input.placeholder = 'Select date';
@@ -110,11 +147,11 @@ function enhance(form) {
     input.setAttribute('aria-haspopup', 'dialog');
     input.setAttribute('aria-expanded', 'false');
     input.setAttribute('aria-label', (input.name === 'drinkBy' ? 'Drink by' : 'Purchase date') + ', select date');
-    input.addEventListener('click', () => showCalendar(input, input));
+    input.addEventListener('click', () => showCalendar(input));
     input.addEventListener('keydown', event => {
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
-        showCalendar(input, input);
+        showCalendar(input);
       }
     });
   }
@@ -124,10 +161,13 @@ const observer = new MutationObserver(() => {
   if (form) enhance(form);
   if (active && !active.trigger.isConnected) dismiss();
 });
-observer.observe(document.querySelector('#dialog'), {childList: true, subtree: true});
+observer.observe(document.querySelector('#dialog'), { childList: true, subtree: true });
 document.addEventListener('pointerdown', event => {
   if (active && !active.popup.contains(event.target) && !active.trigger.contains(event.target)) dismiss();
 });
 document.addEventListener('keydown', event => {
-  if (event.key === 'Escape' && active) { event.stopPropagation(); dismiss(); }
+  if (event.key === 'Escape' && active) {
+    event.stopPropagation();
+    dismiss();
+  }
 }, true);
