@@ -1,4 +1,10 @@
-const initialCellar = { rows: 3, columns: 6, bottles: {}, revision: 0 };
+function normaliseCellar(saved = {}) {
+  const { rows = 3, columns = 6, bottles = {}, revision = 0 } = saved;
+  return {
+    racks: saved.racks ?? [{ id: 'main', name: 'Main rack', rows, columns, bottles }],
+    revision,
+  };
+}
 
 const database = new Promise((resolve, reject) => {
   const request = indexedDB.open('grapleton', 1);
@@ -12,7 +18,7 @@ export async function readCellar() {
   const db = await database;
   return new Promise((resolve, reject) => {
     const request = db.transaction('cellar').objectStore('cellar').get('current');
-    request.onsuccess = () => resolve(request.result ?? structuredClone(initialCellar));
+    request.onsuccess = () => resolve(normaliseCellar(request.result));
     request.onerror = () => reject(request.error);
   });
 }

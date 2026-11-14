@@ -61,7 +61,8 @@
       <label class="wide">Wine name<input name="name" maxlength="120" required placeholder="e.g. Hilltop Shiraz"></label>
       <label>Wine style<select name="style"><option>Red</option><option>White</option><option>Rosé</option><option>Sparkling</option><option>Other</option></select></label>
       <label>Vintage<input name="vintage" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="e.g. 2022"></label>
-      <label class="wide">Grape variety<input name="variety" maxlength="80" placeholder="e.g. Shiraz"></label>
+      <label class="wide">Grape variety<select name="variety"></select></label>
+      <label class="wide">Rack<select name="rack" required></select></label>
       <label class="wide">Rack position<select name="slot" required></select></label>
     </div>
     <details class="extra"><summary>Purchase, pairings &amp; notes</summary>

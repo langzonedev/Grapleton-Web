@@ -4,16 +4,16 @@
 
 Grapleton maps your wine collection to your physical rack. It starts with an empty rack so you can set it up for your own cellar.
 
-1. Choose **Edit rack** to set your rack’s rows and columns.
-2. Tap a slot or **Add bottle**. Enter the wine’s name and vintage, and use **Take photo** or **Choose photo** to attach a label photo.
+1. Choose **Edit rack** to name and size the first rack. Use **Add rack** for other locations, then switch between them with the rack picker.
+2. Tap a slot or **Add bottle**. Enter the wine’s name and vintage, choose its grape variety, and use **Take photo** or **Choose photo** to attach a label photo.
 3. Tap an occupied slot for its photo and essential details. Open **Purchase, pairings & notes** for the rest, or choose **Look up wine** to search the web.
-4. Enter a name, vintage, grape variety, style, or position under **Find a bottle**. For example, search **2010 Shiraz** and select the match to highlight its slot.
+4. Enter a name, vintage, grape variety, style, rack name, or position under **Find a bottle**. For example, search **2010 Shiraz** and select the match to open its rack and highlight its slot.
 
 ## Storage and installation
 
 Bottles and photos are saved in IndexedDB in the current browser profile. The app works offline after its first successful online load. Use the browser’s install option where offered, or use Safari’s Share menu and **Add to Home Screen** on iPhone.
 
-This prototype has one rack per browser profile, up to 26 rows by 24 columns. It has no account, sync, or backup. Clearing site data removes your collection. The prototype uses a shared GitHub Pages origin. The camera and photo-picker options depend on the device and browser.
+Each rack can have up to 26 rows by 24 columns. It has no account, sync, or backup. Clearing site data removes your collection. The prototype uses a shared GitHub Pages origin. The camera and photo-picker options depend on the device and browser.
 
 ## Development
 
