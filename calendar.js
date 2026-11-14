@@ -101,16 +101,22 @@ function enhance(form) {
   for (const input of form.querySelectorAll('input[type="date"]')) {
     if (input.dataset.calendarEnhanced) continue;
     input.dataset.calendarEnhanced = 'true';
-    const wrapper = document.createElement('div');
-    wrapper.className = 'calendar-input-row';
-    input.before(wrapper); wrapper.append(input);
-    const trigger = document.createElement('button');
-    trigger.type = 'button'; trigger.className = 'calendar-trigger secondary';
-    trigger.textContent = 'Calendar'; trigger.setAttribute('aria-haspopup', 'true');
-    trigger.setAttribute('aria-expanded', 'false');
-    trigger.setAttribute('aria-label', 'Open calendar for ' + (input.name === 'drinkBy' ? 'drink by' : 'purchase date'));
-    wrapper.append(trigger);
-    trigger.addEventListener('click', () => showCalendar(input, trigger));
+    // Replace the browser-native date picker with one tap target.
+    // The underlying value remains YYYY-MM-DD for existing saved bottles.
+    input.type = 'text';
+    input.readOnly = true;
+    input.placeholder = 'Select date';
+    input.classList.add('calendar-date-field');
+    input.setAttribute('aria-haspopup', 'dialog');
+    input.setAttribute('aria-expanded', 'false');
+    input.setAttribute('aria-label', (input.name === 'drinkBy' ? 'Drink by' : 'Purchase date') + ', select date');
+    input.addEventListener('click', () => showCalendar(input, input));
+    input.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        showCalendar(input, input);
+      }
+    });
   }
 }
 const observer = new MutationObserver(() => {
