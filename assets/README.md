@@ -1,6 +1,6 @@
 # Grapleton artwork
 
-The current product identity is the wine-glass artwork documented in [the brand guide](../docs/BRAND.md). Use the `grapleton-v3-*` PNG exports and `brand/grapleton-wine-master.webp`. The older mark and icon files below are retired compatibility assets, not current branding.
+The current product identity is the wine-glass artwork documented in [the brand guide](../docs/BRAND.md). Use the `grapleton-v4-*` PNG exports and `brand/grapleton-glass-master.webp`. The older mark and icon files below are retired compatibility assets, not current branding.
 
 The grape-and-cubby mark and bottle illustrations are original artwork created for the Grapleton prototype. They contain no third-party logos, photographs or fonts.
 

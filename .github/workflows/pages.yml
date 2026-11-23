@@ -23,7 +23,7 @@ jobs:
           for script in app.js calendar.js store.js sw.js; do node --check "$script" || exit; done
           mkdir _site
           cp -r index.html style.css calendar.css app.js calendar.js store.js sw.js manifest.webmanifest assets _site/
-          sed -i "s/grapleton-shell-v4/grapleton-shell-${GITHUB_SHA}/" _site/sw.js
+          sed -i "s/grapleton-shell-v5/grapleton-shell-${GITHUB_SHA}/" _site/sw.js
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa
         with:
           path: _site
