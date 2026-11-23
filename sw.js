@@ -1,12 +1,12 @@
-const CACHE = 'grapleton-shell-v3';
+const CACHE = 'grapleton-shell-v4';
 const scope = self.registration.scope;
 const files = [
   './', './index.html', './style.css', './calendar.css', './app.js', './calendar.js', './store.js', './manifest.webmanifest',
-  './assets/grapleton-v2-header-128.png',
-  './assets/grapleton-v2-192.png', './assets/grapleton-v2-512.png',
-  './assets/grapleton-v2-maskable-192.png', './assets/grapleton-v2-maskable-512.png',
-  './assets/grapleton-v2-apple-touch-180.png',
-  './assets/grapleton-v2-favicon-32.png', './assets/grapleton-v2-favicon-48.png',
+  './assets/grapleton-v3-header-128.png',
+  './assets/grapleton-v3-192.png', './assets/grapleton-v3-512.png',
+  './assets/grapleton-v3-maskable-192.png', './assets/grapleton-v3-maskable-512.png',
+  './assets/grapleton-v3-apple-touch-180.png',
+  './assets/grapleton-v3-favicon-32.png', './assets/grapleton-v3-favicon-48.png',
   './assets/bottle-red.svg', './assets/bottle-white.svg', './assets/bottle-rose.svg',
   './assets/bottle-sparkling.svg', './assets/bottle-other.svg', './assets/cellar-serif.woff2',
 ];

@@ -10,25 +10,25 @@
   "theme_color": "#361b27",
   "icons": [
     {
-      "src": "./assets/grapleton-v2-192.png",
+      "src": "./assets/grapleton-v3-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./assets/grapleton-v2-512.png",
+      "src": "./assets/grapleton-v3-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./assets/grapleton-v2-maskable-192.png",
+      "src": "./assets/grapleton-v3-maskable-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "./assets/grapleton-v2-maskable-512.png",
+      "src": "./assets/grapleton-v3-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
