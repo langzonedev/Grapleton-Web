@@ -1,8 +1,12 @@
-const CACHE = 'grapleton-shell-v2';
+const CACHE = 'grapleton-shell-v3';
 const scope = self.registration.scope;
 const files = [
   './', './index.html', './style.css', './calendar.css', './app.js', './calendar.js', './store.js', './manifest.webmanifest',
-  './assets/grapleton-mark.svg', './assets/icon-192.png', './assets/icon-512.png',
+  './assets/grapleton-v2-header-128.png',
+  './assets/grapleton-v2-192.png', './assets/grapleton-v2-512.png',
+  './assets/grapleton-v2-maskable-192.png', './assets/grapleton-v2-maskable-512.png',
+  './assets/grapleton-v2-apple-touch-180.png',
+  './assets/grapleton-v2-favicon-32.png', './assets/grapleton-v2-favicon-48.png',
   './assets/bottle-red.svg', './assets/bottle-white.svg', './assets/bottle-rose.svg',
   './assets/bottle-sparkling.svg', './assets/bottle-other.svg', './assets/cellar-serif.woff2',
 ];
@@ -34,3 +38,4 @@ self.addEventListener('fetch', event => {
     return (await cache.match(navigation ? scope : request)) ?? fetch(request);
   })());
 });
+

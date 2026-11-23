@@ -23,6 +23,7 @@ button:disabled { cursor:wait; opacity:.6; }
 .header-inner { min-height:70px; display:flex; align-items:center; gap:24px; position:relative; }
 .brand { display:inline-flex; align-items:center; gap:8px; text-decoration:none; color:var(--ink); font-size:30px; letter-spacing:-.04em; white-space:nowrap; }
 .brand .period { margin-left:-8px; color:#9e5064; }
+.brand img { display:block; flex:none; border-radius:10px; }
 nav { margin-left:auto; display:flex; gap:6px; align-items:center; }
 nav a { color:var(--muted); display:block; padding:10px 15px; border-radius:9px; text-decoration:none; font-size:.94rem; font-weight:650; }
 nav a[aria-current],nav a:hover { background:#f1e5e7; color:var(--ink); }
@@ -178,3 +179,4 @@ dd { overflow-wrap:anywhere; white-space:pre-wrap; margin-bottom:8px; }
   .hero-copy { padding-inline:15px; }
   .hero h1 { font-size:2.85rem; }
 }
+
