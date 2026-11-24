@@ -134,7 +134,8 @@ function render() {
       '<div><h3>Racks</h3>' + rackControls() + '</div>' +
       '<button class="secondary" data-action="rack-settings">Edit rack</button></div>' +
       '<div class="rack-panel"><h3>Local storage</h3><p>Your bottles and photos stay in this browser on this device. Clearing site data removes your cellar.</p>' +
-      '<p>To install Grapleton, use your browser’s install option or Add to Home Screen from the Share menu on iPhone.</p></div></section>';
+      '<p>To install Grapleton, use your browser’s install option or Add to Home Screen from the Share menu on iPhone.</p></div>' +
+      '<div class="rack-panel"><h3>Backup &amp; restore</h3><p>Save your entire cellar, including photos, to a portable file. Keep it somewhere safe. Restoring replaces your current cellar.</p><div class="dialog-actions"><button class="secondary" data-action="backup-export">Export backup</button><button class="secondary" data-action="backup-import">Restore backup</button></div><p id="backup-status" role="status" aria-live="polite"></p><input id="backup-file" type="file" accept=".json,.grapleton,application/json" hidden></div></section>';
     bindRackControl();
     return;
   }
@@ -155,6 +156,116 @@ function render() {
   bindRackControl();
   const rackScroll = $('.rack-scroll');
   if (rackScroll) rackObserver.observe(rackScroll);
+}
+
+
+const backupLimit = 256 * 1024 * 1024;
+function photoToData(photo) {
+  if (!photo) return Promise.resolve(null);
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Could not read a bottle photo.'));
+    reader.readAsDataURL(photo);
+  });
+}
+async function exportBackup() {
+  const status = $('#backup-status');
+  saving = true;
+  status.textContent = 'Preparing backup…';
+  try {
+    const snapshot = await readCellar();
+    const racks = [];
+    for (const rack of snapshot.racks) {
+      const bottles = {};
+      for (const [key, bottle] of Object.entries(rack.bottles)) {
+        bottles[key] = { ...bottle, photo: await photoToData(bottle.photo) };
+      }
+      racks.push({ ...rack, bottles });
+    }
+    const file = new Blob([JSON.stringify({ format: 'grapleton-cellar', version: 1,
+      exportedAt: new Date().toISOString(), racks })], { type: 'application/json' });
+    if (file.size > backupLimit) throw new Error('Backup exceeds the 256 MiB portable file limit.');
+    const url = URL.createObjectURL(file);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'grapleton-' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    status.textContent = 'Backup prepared. Check your downloads and keep the file safe.';
+  } catch (error) { status.textContent = error.message || 'Could not export backup.'; }
+  finally { saving = false; }
+}
+async function parseBackup(file) {
+  const invalid = () => { throw new Error('Invalid or unsupported Grapleton backup. Your cellar has not changed.'); };
+  if (!file || file.size > backupLimit) invalid();
+  let data;
+  try { data = JSON.parse(await file.text()); } catch { invalid(); }
+  if (!data || data.format !== 'grapleton-cellar' || data.version !== 1 ||
+      !Array.isArray(data.racks) || !data.racks.length) invalid();
+  const ids = new Set(), names = new Set(), racks = [];
+  for (const rack of data.racks) {
+    if (!rack || typeof rack.id !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(rack.id) ||
+        ids.has(rack.id) || typeof rack.name !== 'string' || !rack.name.trim() || rack.name.length > 60 ||
+        names.has(rack.name.toLowerCase()) ||
+        !Number.isInteger(rack.rows) || rack.rows < 1 || rack.rows > 26 ||
+        !Number.isInteger(rack.columns) || rack.columns < 1 || rack.columns > 24 ||
+        !rack.bottles || typeof rack.bottles !== 'object' || Array.isArray(rack.bottles)) invalid();
+    ids.add(rack.id); names.add(rack.name.toLowerCase());
+    const bottles = {};
+    for (const [key, bottle] of Object.entries(rack.bottles)) {
+      if (!/^[1-9]\d*:[1-9]\d*$/.test(key)) invalid();
+      const [row, col] = key.split(':').map(Number);
+      if (row > rack.rows || col > rack.columns || !bottle || typeof bottle.name !== 'string' ||
+          !bottle.name.trim() || !Object.hasOwn(styles, bottle.style)) invalid();
+      const clean = {};
+      for (const [field, max] of Object.entries({ name:120, style:20, vintage:4, variety:120,
+          purchased:10, drinkBy:10, reason:200, pairings:200, notes:1000, purchasePrice:20 })) {
+        const value = bottle[field] ?? '';
+        if (typeof value !== 'string' || value.length > max) invalid();
+        clean[field] = value;
+      }
+      if (clean.vintage && !/^\d{4}$/.test(clean.vintage)) invalid();
+      if (clean.purchasePrice && (!/^\d+(?:\.\d{1,2})?$/.test(clean.purchasePrice) || Number(clean.purchasePrice) > 999999999)) invalid();
+      for (const field of ['purchased','drinkBy']) {
+        if (clean[field] && !/^\d{4}-\d{2}-\d{2}$/.test(clean[field])) invalid();
+      }
+      clean.photo = null;
+      if (bottle.photo != null) {
+        if (typeof bottle.photo !== 'string' || !/^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(bottle.photo)) invalid();
+        try {
+          const raw = atob(bottle.photo.split(',')[1]);
+          if (raw.length > 30 * 1024 * 1024 || raw.charCodeAt(0) !== 255 || raw.charCodeAt(1) !== 216) invalid();
+          const blob = new Blob([Uint8Array.from(raw, char => char.charCodeAt(0))], { type: 'image/jpeg' });
+          clean.photo = blob;
+        } catch { invalid(); }
+      }
+      bottles[key] = clean;
+    }
+    racks.push({ id: rack.id, name: rack.name, rows: rack.rows, columns: rack.columns, bottles });
+  }
+  return racks;
+}
+async function prepareRestore(file) {
+  const status = $('#backup-status');
+  saving = true;
+  status.textContent = 'Checking backup…';
+  try {
+    const racks = await parseBackup(file);
+    const count = racks.reduce((sum, rack) => sum + Object.keys(rack.bottles).length, 0);
+    if (route !== 'settings') return;
+    status.textContent = '';
+    openDialog('Restore cellar?', '<p>This backup contains ' + racks.length + ' rack(s) and ' + count +
+      ' bottle(s). Restoring permanently replaces the cellar currently on this device. Export your current cellar first if you need to keep it.</p>' +
+      '<p class="error" role="alert"></p><div class="dialog-actions"><button class="secondary" data-action="close">Cancel</button>' +
+      '<button class="primary" id="restore-confirm">Replace cellar</button></div>');
+    $('#restore-confirm').addEventListener('click', event => {
+      commit({ ...cellar, racks }, event.currentTarget, $('.error', dialog), 'Cellar restored.', undefined, racks[0].id);
+    });
+  } catch (error) { status.textContent = error.message || 'Could not read backup.'; }
+  finally { saving = false; }
 }
 
 function rackControls() {
@@ -471,6 +582,12 @@ document.addEventListener('click', event => {
   if (!control || !cellar || saving) return;
   const { action, key, rack } = control.dataset;
   switch (action) {
+    case 'backup-export': exportBackup(); break;
+    case 'backup-import': {
+      const input = $('#backup-file');
+      input.onchange = () => { const file = input.files[0]; input.value = ''; if (file) prepareRestore(file); };
+      input.click(); break;
+    }
     case 'add': editBottle(); break;
     case 'rack-settings': editRack(); break;
     case 'new-rack': editRack(true); break;
