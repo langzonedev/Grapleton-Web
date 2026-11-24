@@ -8,7 +8,7 @@
 }
 *, *::before, *::after { box-sizing:border-box; }
 [hidden] { display:none !important; }
-body { margin:0; }
+body { margin:0; padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px); }
 h1,h2,h3,p,ul,dl,dd { margin:0; }
 h1,h2,h3,.brand { font-family:Cellar,Georgia,serif; font-weight:500; line-height:1.08; }
 a { color:var(--plum); text-underline-offset:4px; }

@@ -45,3 +45,25 @@ export async function saveCellar(next, revision) {
     };
   });
 }
+
+// Camera Activities may outlive the Android WebView process.
+export async function readCameraDraft() {
+  const db = await database;
+  return new Promise((resolve, reject) => {
+    const request = db.transaction('cellar').objectStore('cellar').get('camera-draft');
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function saveCameraDraft(draft) {
+  const db = await database;
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction('cellar', 'readwrite');
+    const store = transaction.objectStore('cellar');
+    if (draft) store.put(draft, 'camera-draft');
+    else store.delete('camera-draft');
+    transaction.oncomplete = () => resolve();
+    transaction.onabort = () => reject(transaction.error);
+  });
+}

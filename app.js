@@ -1,4 +1,4 @@
-import { readCellar, saveCellar } from './store.js';
+import { readCellar, saveCellar, readCameraDraft, saveCameraDraft } from './store.js';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const view = $('#view');
@@ -36,6 +36,7 @@ let focusReturn;
 let dialogContent = 0;
 let saving = false;
 let toastTimer;
+let recoveredCameraDraft;
 
 function photoMarkup(bottle) {
   if (!bottle.photo) return '<img class="illustration" src="./assets/bottle-' +
@@ -133,8 +134,10 @@ function render() {
     view.innerHTML = '<section class="settings"><h2>Cellar settings</h2><div class="rack-panel settings-panel">' +
       '<div><h3>Racks</h3>' + rackControls() + '</div>' +
       '<button class="secondary" data-action="rack-settings">Edit rack</button></div>' +
-      '<div class="rack-panel"><h3>Local storage</h3><p>Your bottles and photos stay in this browser on this device. Clearing site data removes your cellar.</p>' +
-      '<p>To install Grapleton, use your browser’s install option or Add to Home Screen from the Share menu on iPhone.</p></div></section>';
+      '<div class="rack-panel"><h3>Local storage</h3><p>' + (window.grapletonNative
+        ? 'Your bottles and photos stay on this device. Uninstalling Grapleton or clearing its app data removes your cellar. App updates arrive through Google Play.'
+        : 'Your bottles and photos stay in this browser on this device. Clearing site data removes your cellar.</p><p>To install Grapleton, use your browser’s install option or Add to Home Screen from the Share menu on iPhone.') +
+      '</p></div></section>';
     bindRackControl();
     return;
   }
@@ -282,7 +285,7 @@ async function commit(next, button, error, message, key, rackId = currentRack().
   }
 }
 
-function editBottle(key) {
+function editBottle(key, recovered) {
   const rack = currentRack();
   const existing = rack.bottles[key];
   const destinations = cellar.racks.filter(item => (item === rack && existing) || freeSlots(item).length);
@@ -323,7 +326,19 @@ function editBottle(key) {
   for (const field of ['name', 'style', 'vintage', 'variety', 'purchased', 'drinkBy', 'reason', 'pairings', 'notes']) {
     if (existing?.[field]) form.elements[field].value = existing[field];
   }
-  let photo = existing?.photo ?? null;
+  if (recovered) {
+    const recoveredVariety = recovered.fields.variety;
+    if (recoveredVariety && ![...variety.options].some(option => option.value === recoveredVariety)) {
+      variety.add(new Option(recoveredVariety, recoveredVariety));
+    }
+    for (const [field, value] of Object.entries(recovered.fields)) {
+      if (form.elements[field]) form.elements[field].value = value;
+    }
+    showPositions();
+    form.elements.slot.value = recovered.fields.slot;
+    if (!form.elements.slot.value) select.selectedIndex = 0;
+  }
+  let photo = recovered?.photo ?? existing?.photo ?? null;
   let photoURL;
   const status = $('#photo-status');
   const preview = $('#photo-preview');
@@ -338,12 +353,49 @@ function editBottle(key) {
   };
   updatePreview();
   dialog.addEventListener('close', () => { if (photoURL) URL.revokeObjectURL(photoURL); }, { once: true });
+  if (window.grapletonNative) {
+    dialog.addEventListener('close', () => {
+      recoveredCameraDraft = undefined;
+      saveCameraDraft(null).catch(console.warn);
+    }, { once: true });
+  }
   form.elements.style.addEventListener('change', updatePreview);
   clear.addEventListener('click', () => {
     photo = null;
     updatePreview();
     status.textContent = 'Photo removed.';
   });
+  const nativePhoto = async source => {
+    submit.disabled = true;
+    const controls = form.querySelectorAll('.photo-actions button');
+    controls.forEach(button => { button.disabled = true; });
+    status.textContent = 'Opening photos…';
+    try {
+      await saveCameraDraft({ key, rackId: rack.id, fields: Object.fromEntries(new FormData(form)), photo });
+      const file = await window.grapletonNative.getPhoto(source);
+      if (!dialog.open || generation !== dialogContent) return;
+      if (file) {
+        photo = await compressPhoto(file);
+        updatePreview();
+        status.textContent = 'Photo ready.';
+      } else status.textContent = '';
+      await saveCameraDraft(null);
+    } catch {
+      await saveCameraDraft(null).catch(console.warn);
+      status.textContent = 'Could not open the photo. Check access in device settings and try again.';
+    } finally {
+      submit.disabled = false;
+      controls.forEach(button => { button.disabled = false; });
+    }
+  };
+  if (window.grapletonNative) {
+    for (const source of ['camera', 'library']) {
+      $('[data-action="' + source + '"]', form).addEventListener('click', event => {
+        event.stopPropagation();
+        nativePhoto(source);
+      });
+    }
+  }
   for (const id of ['camera', 'library']) {
     const input = $('#' + id, form);
     input.addEventListener('change', async () => {
@@ -595,13 +647,30 @@ async function refresh() {
 try {
   cellar = await readCellar();
   render();
+  if (window.grapletonNative) {
+    const recoverCamera = async () => {
+      const draft = await readCameraDraft() ?? recoveredCameraDraft;
+      if (!draft || !cellar.racks.some(rack => rack.id === draft.rackId)) return;
+      if (window.grapletonRestoredPhoto) {
+        draft.photo = await compressPhoto(await (await fetch(window.grapletonRestoredPhoto)).blob());
+        window.grapletonRestoredPhoto = null;
+      }
+      activeRackId = draft.rackId;
+      recoveredCameraDraft = draft;
+      editBottle(draft.key, draft);
+      await saveCameraDraft(null);
+      notify('Your bottle draft was recovered. Review it and save.');
+    };
+    window.addEventListener('grapleton:restored-photo', () => recoverCamera().catch(console.warn));
+    await recoverCamera();
+  }
   window.addEventListener('hashchange', () => {
     render();
     if (route === 'rack' && highlighted) focusSlot(highlighted, true);
   });
   window.addEventListener('focus', () => refresh().catch(console.warn));
   dialog.addEventListener('close', () => refresh().catch(console.warn));
-  if ('serviceWorker' in navigator) setupAppUpdates().catch(console.warn);
+  if (!window.grapletonNative && 'serviceWorker' in navigator) setupAppUpdates().catch(console.warn);
 } catch {
   view.innerHTML = '<p role="alert">Grapleton could not open browser storage. Enable site storage and reload to use your cellar.</p>';
   document.querySelectorAll('[data-action]').forEach(button => { button.disabled = true; });

@@ -1,7 +1,7 @@
 const CACHE = 'grapleton-shell-v2';
 const scope = self.registration.scope;
 const files = [
-  './', './index.html', './style.css', './app.js', './store.js', './manifest.webmanifest',
+  './', './index.html', './privacy.html', './style.css', './app.js', './store.js', './manifest.webmanifest',
   './assets/grapleton-mark.svg', './assets/icon-192.png', './assets/icon-512.png',
   './assets/bottle-red.svg', './assets/bottle-white.svg', './assets/bottle-rose.svg',
   './assets/bottle-sparkling.svg', './assets/bottle-other.svg', './assets/cellar-serif.woff2',

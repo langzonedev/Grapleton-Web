@@ -1,0 +1,9 @@
+{
+  "appId": "com.langsystems.grapleton",
+  "appName": "Grapleton",
+  "webDir": "dist-native",
+  "android": {
+    "backgroundColor": "#f8f4ee",
+    "allowMixedContent": false
+  }
+}
