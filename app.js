@@ -252,6 +252,7 @@ async function parseBackup(file) {
 }
 async function prepareRestore(file) {
   const status = $('#backup-status');
+  if (!status || saving) return;
   saving = true;
   status.textContent = 'Checking backup…';
   try {
