@@ -230,7 +230,7 @@ async function parseBackup(file) {
       if (clean.vintage && !/^\d{4}$/.test(clean.vintage)) invalid();
       if (clean.purchasePrice && (!/^\d+(?:\.\d{1,2})?$/.test(clean.purchasePrice) || Number(clean.purchasePrice) > 999999999)) invalid();
       for (const field of ['purchased','drinkBy']) {
-        if (clean[field] && !/^\d{4}-\d{2}-\d{2}$/.test(clean[field])) invalid();
+        if (clean[field] && (!/^\d{4}-\d{2}-\d{2}$/.test(clean[field]) || !Number.isFinite(Date.parse(clean[field])) || new Date(clean[field]).toISOString().slice(0,10) !== clean[field])) invalid();
       }
       clean.photo = null;
       if (bottle.photo != null) {
@@ -239,6 +239,8 @@ async function parseBackup(file) {
           const raw = atob(bottle.photo.split(',')[1]);
           if (raw.length > 30 * 1024 * 1024 || raw.charCodeAt(0) !== 255 || raw.charCodeAt(1) !== 216) invalid();
           const blob = new Blob([Uint8Array.from(raw, char => char.charCodeAt(0))], { type: 'image/jpeg' });
+          const url = URL.createObjectURL(blob);
+          try { const image = new Image(); image.src = url; await image.decode(); if (image.naturalWidth > 1200 || image.naturalHeight > 1200) invalid(); } finally { URL.revokeObjectURL(url); }
           clean.photo = blob;
         } catch { invalid(); }
       }
@@ -255,7 +257,7 @@ async function prepareRestore(file) {
   try {
     const racks = await parseBackup(file);
     const count = racks.reduce((sum, rack) => sum + Object.keys(rack.bottles).length, 0);
-    if (route !== 'settings') return;
+    if (route !== 'settings' || !status.isConnected) return;
     status.textContent = '';
     openDialog('Restore cellar?', '<p>This backup contains ' + racks.length + ' rack(s) and ' + count +
       ' bottle(s). Restoring permanently replaces the cellar currently on this device. Export your current cellar first if you need to keep it.</p>' +
