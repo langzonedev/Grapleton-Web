@@ -22,7 +22,7 @@ Open `android/` in Android Studio, choose Generate Signed App Bundle / APK, sele
 
 ## Data boundaries
 
-Native data belongs to this package's WebView origin. Existing website collections stay in the browser and are not imported automatically. Normal upgrades with the same package and signing identity retain native storage. Uninstalling or clearing app data removes it. Android cloud backup and device transfer are disabled. Camera drafts are persisted before leaving for the system activity and recovered if the OS reclaims the process. There is no account, sync or export backup in this version.
+Native data belongs to this package's WebView origin. Existing website collections stay in the browser and are not imported automatically. Use Settings → Backup & restore to export from the browser and restore that file in Android. Normal upgrades with the same package and signing identity retain native storage. Uninstalling or clearing app data removes it. Android cloud backup and device transfer are disabled. Camera drafts are persisted before leaving for the system activity and recovered if the OS reclaims the process. The portable JSON format includes photos and supports a user-confirmed replacement restore. Android export opens the native share sheet with a file in app cache. Save the file to a destination you control. There is no account or automatic sync.
 
 ## Store handoff
 

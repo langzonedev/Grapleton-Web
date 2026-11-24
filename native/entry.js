@@ -1,8 +1,20 @@
 import { Capacitor } from '@capacitor/core';
 import { Camera, CameraSource, CameraResultType } from '@capacitor/camera';
 import { App } from '@capacitor/app';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 
 window.grapletonNative = {
+  async exportBackup(data, filename) {
+    const file = await Filesystem.writeFile({
+      path: 'backups/' + filename,
+      data,
+      directory: Directory.Cache,
+      encoding: Encoding.UTF8,
+      recursive: true,
+    });
+    await Share.share({ title: 'Grapleton cellar backup', files: [file.uri] });
+  },
   async getPhoto(source) {
     try {
       const photo = await Camera.getPhoto({
@@ -23,7 +35,7 @@ window.grapletonNative = {
 };
 
 await App.addListener('backButton', () => {
-  const dialog = document.querySelector('dialog[open]');
+  const dialog = [...document.querySelectorAll('dialog[open]')].at(-1);
   if (dialog) {
     if (dialog.dispatchEvent(new Event('cancel', { cancelable: true }))) dialog.close();
   } else if (location.hash && location.hash !== '#rack') {

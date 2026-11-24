@@ -13,7 +13,7 @@ Grapleton maps your wine collection to your physical rack. It starts with an emp
 
 Bottles and photos are saved in IndexedDB in the current browser profile. The app works offline after its first successful online load. Use the browser’s install option where offered, or use Safari’s Share menu and **Add to Home Screen** on iPhone.
 
-Each rack can have up to 26 rows by 24 columns. It has no account, sync, or backup. Clearing site data removes your collection. The prototype uses a shared GitHub Pages origin. The camera and photo-picker options depend on the device and browser.
+Each rack can have up to 26 rows by 24 columns. It has no account or sync. Use Settings → Backup & restore to export a portable JSON file containing your racks, bottle details and JPEG photographs. Store it outside the browser. Restore validates the version and content, previews rack and bottle counts, and requires confirmation before replacing the current cellar in a single IndexedDB transaction. Clearing site data removes your collection unless you have exported a backup. Version 1 uses `format: grapleton-cellar`, `version: 1`, `exportedAt` (ISO timestamp), and `racks` (rack IDs, names, dimensions, slot-keyed bottles with JPEG data URLs or null photos). Maximum backup size is 256 MiB. Files are unencrypted; keep them private. The prototype uses a shared GitHub Pages origin. The camera and photo-picker options depend on the device and browser.
 
 ## Development
 

@@ -12,10 +12,13 @@
     "@capacitor/android": "8.6.2",
     "@capacitor/app": "8.1.2",
     "@capacitor/camera": "8.2.6",
-    "@capacitor/core": "8.6.2"
+    "@capacitor/core": "8.6.2",
+    "@capacitor/filesystem": "8.1.5",
+    "@capacitor/share": "8.0.3"
   },
   "devDependencies": {
     "@capacitor/cli": "8.6.2",
-    "esbuild": "0.28.2"
+    "esbuild": "0.28.2",
+    "sharp": "0.35.5"
   }
 }

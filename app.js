@@ -137,7 +137,9 @@ function render() {
       '<div class="rack-panel"><h3>Local storage</h3><p>' + (window.grapletonNative
         ? 'Your bottles and photos stay on this device. Uninstalling Grapleton or clearing its app data removes your cellar. App updates arrive through Google Play.'
         : 'Your bottles and photos stay in this browser on this device. Clearing site data removes your cellar.</p><p>To install Grapleton, use your browser’s install option or Add to Home Screen from the Share menu on iPhone.') +
-      '</p></div></section>';
+      '</p></div>' +
+
+      '<div class="rack-panel"><h3>Backup &amp; restore</h3><p>Save your entire cellar, including photos, to a portable file. Keep it somewhere safe. Restoring replaces your current cellar.</p><div class="dialog-actions"><button class="secondary" data-action="backup-export">Export backup</button><button class="secondary" data-action="backup-import">Restore backup</button></div><p id="backup-status" role="status" aria-live="polite"></p><input id="backup-file" type="file" accept=".json,.grapleton,application/json" hidden></div></section>';
     bindRackControl();
     return;
   }
@@ -158,6 +160,125 @@ function render() {
   bindRackControl();
   const rackScroll = $('.rack-scroll');
   if (rackScroll) rackObserver.observe(rackScroll);
+}
+
+
+const backupLimit = 256 * 1024 * 1024;
+function photoToData(photo) {
+  if (!photo) return Promise.resolve(null);
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Could not read a bottle photo.'));
+    reader.readAsDataURL(photo);
+  });
+}
+async function exportBackup() {
+  const status = $('#backup-status');
+  saving = true;
+  status.textContent = 'Preparing backup…';
+  try {
+    const snapshot = await readCellar();
+    const racks = [];
+    for (const rack of snapshot.racks) {
+      const bottles = {};
+      for (const [key, bottle] of Object.entries(rack.bottles)) {
+        bottles[key] = { ...bottle, photo: await photoToData(bottle.photo) };
+      }
+      racks.push({ ...rack, bottles });
+    }
+    const file = new Blob([JSON.stringify({ format: 'grapleton-cellar', version: 1,
+      exportedAt: new Date().toISOString(), racks })], { type: 'application/json' });
+    if (file.size > backupLimit) throw new Error('Backup exceeds the 256 MiB portable file limit.');
+    const filename = 'grapleton-' + new Date().toISOString().slice(0, 10) + '.json';
+    if (window.grapletonNative) {
+      await window.grapletonNative.exportBackup(await file.text(), filename);
+      status.textContent = 'Backup prepared. Use the share sheet to save it somewhere safe.';
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'grapleton-' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    status.textContent = 'Backup prepared. Check your downloads and keep the file safe.';
+  } catch (error) { status.textContent = error.message || 'Could not export backup.'; }
+  finally { saving = false; }
+}
+async function parseBackup(file) {
+  const invalid = () => { throw new Error('Invalid or unsupported Grapleton backup. Your cellar has not changed.'); };
+  if (!file || file.size > backupLimit) invalid();
+  let data;
+  try { data = JSON.parse(await file.text()); } catch { invalid(); }
+  if (!data || data.format !== 'grapleton-cellar' || data.version !== 1 ||
+      !Array.isArray(data.racks) || !data.racks.length) invalid();
+  const ids = new Set(), names = new Set(), racks = [];
+  for (const rack of data.racks) {
+    if (!rack || typeof rack.id !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(rack.id) ||
+        ids.has(rack.id) || typeof rack.name !== 'string' || !rack.name.trim() || rack.name.length > 60 ||
+        names.has(rack.name.toLowerCase()) ||
+        !Number.isInteger(rack.rows) || rack.rows < 1 || rack.rows > 26 ||
+        !Number.isInteger(rack.columns) || rack.columns < 1 || rack.columns > 24 ||
+        !rack.bottles || typeof rack.bottles !== 'object' || Array.isArray(rack.bottles)) invalid();
+    ids.add(rack.id); names.add(rack.name.toLowerCase());
+    const bottles = {};
+    for (const [key, bottle] of Object.entries(rack.bottles)) {
+      if (!/^[1-9]\d*:[1-9]\d*$/.test(key)) invalid();
+      const [row, col] = key.split(':').map(Number);
+      if (row > rack.rows || col > rack.columns || !bottle || typeof bottle.name !== 'string' ||
+          !bottle.name.trim() || !Object.hasOwn(styles, bottle.style)) invalid();
+      const clean = {};
+      for (const [field, max] of Object.entries({ name:120, style:20, vintage:4, variety:120,
+          purchased:10, drinkBy:10, reason:200, pairings:200, notes:1000, purchasePrice:20 })) {
+        const value = bottle[field] ?? '';
+        if (typeof value !== 'string' || value.length > max) invalid();
+        clean[field] = value;
+      }
+      if (clean.vintage && !/^\d{4}$/.test(clean.vintage)) invalid();
+      if (clean.purchasePrice && (!/^\d+(?:\.\d{1,2})?$/.test(clean.purchasePrice) || Number(clean.purchasePrice) > 999999999)) invalid();
+      for (const field of ['purchased','drinkBy']) {
+        if (clean[field] && (!/^\d{4}-\d{2}-\d{2}$/.test(clean[field]) || !Number.isFinite(Date.parse(clean[field])) || new Date(clean[field]).toISOString().slice(0,10) !== clean[field])) invalid();
+      }
+      clean.photo = null;
+      if (bottle.photo != null) {
+        if (typeof bottle.photo !== 'string' || !/^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(bottle.photo)) invalid();
+        try {
+          const raw = atob(bottle.photo.split(',')[1]);
+          if (raw.length > 30 * 1024 * 1024 || raw.charCodeAt(0) !== 255 || raw.charCodeAt(1) !== 216) invalid();
+          const blob = new Blob([Uint8Array.from(raw, char => char.charCodeAt(0))], { type: 'image/jpeg' });
+          const url = URL.createObjectURL(blob);
+          try { const image = new Image(); image.src = url; await image.decode(); if (image.naturalWidth > 1200 || image.naturalHeight > 1200) invalid(); } finally { URL.revokeObjectURL(url); }
+          clean.photo = blob;
+        } catch { invalid(); }
+      }
+      bottles[key] = clean;
+    }
+    racks.push({ id: rack.id, name: rack.name, rows: rack.rows, columns: rack.columns, bottles });
+  }
+  return racks;
+}
+async function prepareRestore(file) {
+  const status = $('#backup-status');
+  if (!status || saving) return;
+  saving = true;
+  status.textContent = 'Checking backup…';
+  try {
+    const racks = await parseBackup(file);
+    const count = racks.reduce((sum, rack) => sum + Object.keys(rack.bottles).length, 0);
+    if (route !== 'settings' || !status.isConnected) return;
+    status.textContent = '';
+    openDialog('Restore cellar?', '<p>This backup contains ' + racks.length + ' rack(s) and ' + count +
+      ' bottle(s). Restoring permanently replaces the cellar currently on this device. Export your current cellar first if you need to keep it.</p>' +
+      '<p class="error" role="alert"></p><div class="dialog-actions"><button class="secondary" data-action="close">Cancel</button>' +
+      '<button class="primary" id="restore-confirm">Replace cellar</button></div>');
+    $('#restore-confirm').addEventListener('click', event => {
+      commit({ ...cellar, racks }, event.currentTarget, $('.error', dialog), 'Cellar restored.', undefined, racks[0].id);
+    });
+  } catch (error) { status.textContent = error.message || 'Could not read backup.'; }
+  finally { saving = false; }
 }
 
 function rackControls() {
@@ -217,11 +338,32 @@ dialog.addEventListener('cancel', event => {
   if (saving) event.preventDefault();
 });
 
+// Dates are stored as YYYY-MM-DD and presented in Australian day/month/year order.
+function displayDate(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value || '')
+    ? value.slice(8, 10) + '/' + value.slice(5, 7) + '/' + value.slice(0, 4)
+    : value;
+}
+function storedDate(value) {
+  if (!value) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
+  if (!match) return value;
+  return match[3] + '-' + match[2] + '-' + match[1];
+}
+
+const audPrice = new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' });
+function displayPurchasePrice(value) {
+  if (value === undefined || value === null || value === '') return '';
+  const price = Number(value);
+  return Number.isFinite(price) && price >= 0 ? audPrice.format(price) : '';
+}
+
 function showBottle(key) {
   const rack = currentRack();
   const bottle = rack.bottles[key];
   const extra = [
-    ['Purchased', bottle.purchased], ['Purchase reason', bottle.reason],
+    ['Purchased', bottle.purchased], ['Purchase price', displayPurchasePrice(bottle.purchasePrice)], ['Purchase reason', bottle.reason],
     ['Drink by', bottle.drinkBy], ['Food pairings', bottle.pairings], ['Notes', bottle.notes],
   ].filter(([, value]) => value);
   const lookup = new URL('https://www.google.com/search');
@@ -229,10 +371,10 @@ function showBottle(key) {
   openDialog(bottle.name, '<div class="detail-top"><div class="detail-art ' + styles[bottle.style] + '">' +
     photoMarkup(bottle) + '</div><div><span class="position">' + escape(rack.name) + ' · Slot ' + slotName(key) + '</span><p>' +
     escape([bottle.vintage, bottle.variety || bottle.style].filter(Boolean).join(' · ')) + '</p>' +
-    (bottle.drinkBy ? '<p>Drink by <strong>' + escape(bottle.drinkBy) + '</strong></p>' : '') +
+    (bottle.drinkBy ? '<p>Drink by <strong>' + escape(displayDate(bottle.drinkBy)) + '</strong></p>' : '') +
     '<a href="' + escape(lookup.href) + '" rel="noopener noreferrer" target="_blank">Look up wine ↗</a></div></div>' +
     (extra.length ? '<details class="extra"><summary>Purchase, pairings &amp; notes</summary><dl>' +
-      extra.map(([label, value]) => '<dt>' + label + '</dt><dd>' + escape(value) + '</dd>').join('') +
+      extra.map(([label, value]) => '<dt>' + label + '</dt><dd>' + escape(label === 'Purchased' || label === 'Drink by' ? displayDate(value) : value) + '</dd>').join('') +
       '</dl></details>' : '') +
     '<div class="dialog-actions"><button class="quiet danger" data-action="remove" data-key="' + key + '">Remove</button>' +
     (route === 'collection' ? '<button class="secondary" data-action="locate" data-key="' + key + '">Show in rack</button>' : '') +
@@ -323,7 +465,7 @@ function editBottle(key, recovered) {
   if (existing?.variety && !varieties.includes(existing.variety)) {
     variety.add(new Option(existing.variety, existing.variety));
   }
-  for (const field of ['name', 'style', 'vintage', 'variety', 'purchased', 'drinkBy', 'reason', 'pairings', 'notes']) {
+  for (const field of ['name', 'style', 'vintage', 'variety', 'purchased', 'purchasePrice', 'drinkBy', 'reason', 'pairings', 'notes']) {
     if (existing?.[field]) form.elements[field].value = existing[field];
   }
   if (recovered) {
@@ -371,7 +513,9 @@ function editBottle(key, recovered) {
     controls.forEach(button => { button.disabled = true; });
     status.textContent = 'Opening photos…';
     try {
-      await saveCameraDraft({ key, rackId: rack.id, fields: Object.fromEntries(new FormData(form)), photo });
+      const fields = Object.fromEntries(new FormData(form));
+      for (const field of ['purchased', 'drinkBy']) fields[field] = storedDate(fields[field]);
+      await saveCameraDraft({ key, rackId: rack.id, fields, photo });
       const file = await window.grapletonNative.getPhoto(source);
       if (!dialog.open || generation !== dialogContent) return;
       if (file) {
@@ -421,9 +565,22 @@ function editBottle(key, recovered) {
     });
   }
   form.elements.name.addEventListener('input', () => form.elements.name.setCustomValidity(''));
+  form.elements.purchasePrice.addEventListener('input', () => form.elements.purchasePrice.setCustomValidity(''));
   form.addEventListener('submit', event => {
     event.preventDefault();
     const values = Object.fromEntries([...new FormData(form)].map(([name, value]) => [name, value.trim()]));
+    for (const field of ['purchased', 'drinkBy']) values[field] = storedDate(values[field]);
+    if (values.purchasePrice !== '') {
+      const price = Number(values.purchasePrice);
+      if (!/^\d+(?:\.\d{1,2})?$/.test(values.purchasePrice) || !Number.isFinite(price) || price > 999999999) {
+        form.elements.purchasePrice.setCustomValidity('Enter a valid price in AUD, with up to two decimal places.');
+        form.elements.purchasePrice.reportValidity();
+        return;
+      }
+      values.purchasePrice = price.toFixed(2);
+    }
+    form.elements.purchasePrice.setCustomValidity('');
+
     if (!values.name) {
       form.elements.name.setCustomValidity('Enter a wine name.');
       form.elements.name.reportValidity();
@@ -489,6 +646,12 @@ document.addEventListener('click', event => {
   if (!control || !cellar || saving) return;
   const { action, key, rack } = control.dataset;
   switch (action) {
+    case 'backup-export': exportBackup(); break;
+    case 'backup-import': {
+      const input = $('#backup-file');
+      input.onchange = () => { const file = input.files[0]; input.value = ''; if (file) prepareRestore(file); };
+      input.click(); break;
+    }
     case 'add': editBottle(); break;
     case 'rack-settings': editRack(); break;
     case 'new-rack': editRack(true); break;
