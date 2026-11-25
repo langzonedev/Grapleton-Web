@@ -122,7 +122,9 @@ export function openSelect(select) {
     event.preventDefault();
     const direction = event.key === 'ArrowDown' ? 1 : -1;
     const current = options.indexOf(document.activeElement);
-    options[(current + direction + options.length) % options.length].focus();
+    const next = current === -1 && direction === -1 ? options.length - 1
+      : (current + direction + options.length) % options.length;
+    options[next].focus();
   });
   sheet.addEventListener('close', () => {
     trigger.setAttribute('aria-expanded', 'false');
