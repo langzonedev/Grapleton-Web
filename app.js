@@ -166,7 +166,7 @@ function render() {
       '<div><h3>Racks</h3>' + rackControls() + '</div>' +
       '<button class="secondary" data-action="rack-settings">Edit rack</button></div>') +
       '<div class="rack-panel"><h3>Local storage</h3><p>' + (window.grapletonNative
-        ? 'Your bottles and photos stay on this device. Uninstalling Grapleton or clearing its app data removes your cellar. App updates arrive through Google Play.'
+        ? 'Your bottles and photos stay on this device. Uninstalling Grapleton or clearing its app data removes your cellar. Installing an app update keeps your saved cellar.'
         : 'Your bottles and photos stay in this browser on this device. Clearing site data removes your cellar.</p><p>To install Grapleton, use your browser’s install option or Add to Home Screen from the Share menu on iPhone.') +
       '</p></div>' +
 
