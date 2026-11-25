@@ -1,67 +1,62 @@
 # Android candidate verification
 
-Independent QA and release review performed on 25 November 2026 by the QA agent. The Developer authored the application changes. QA inspected source and artifacts and exercised the installed app.
+Independent QA reviewed the installed Android prototype on 25 November 2026. The Developer authored the product changes. The QA agent independently exercised the candidate and inspected its artifacts.
 
-The candidate is approved for human acceptance within the emulator coverage below. Physical Android testing and owner-controlled release signing remain open.
+**Verdict — APPROVE FOR HUMAN ACCEPTANCE**, scoped to the emulator and configurations below. Physical Android acceptance and owner-controlled production signing remain open.
 
-## Candidate identity
+## Final candidate
 
-Implementation commit `e1ba6e9bfbf73031e6907bb4bf42f5ca55d7cc3b`, package `com.langsystems.grapleton`, version `0.2.0`, version code `2`, minimum API `24`, target and compile API `36`. This candidate adds native bottom navigation, a cellar overview, searchable selection sheets and Settings privacy while retaining glass branding, calendars, AUD prices and portable JSON backups.
-
-| Artifact | SHA-256 | Observed state |
-| --- | --- | --- |
-| Debug APK | `b9589c5ad1a436ddd97a7bbb71d3d62b247bacbe88e8ab28fd3e778d1f5ac823` | Installed and launched, Android Debug certificate verified |
-| Release AAB | `55731095a54f07511860d34d68a52d4ba5c99133b742d66c520f5fa5b4731fa8` | Inspected unsigned bundle |
-
-The debug signing certificate SHA-256 is `4e303ec8c6ac8d66c21b917fd9798692bf85ae5458cdab89a9ce97b37d0e8579`. This is the workstation development identity.
-
-## Executed coverage
-
-The runtime environment was the existing Ripper_Tipper_S23 AVD, Android 16/API 36, x86_64 Google APIs image, 1080 × 2400 pixels, density 420, System WebView `133.0.6943.137`. Playwright's Android WebView connection operated the installed UI. ADB and UI Automator operated the actual external camera and photo-picker activities.
-
-| Scenario | Result |
+| Item | Verified identity |
 | --- | --- |
-| Installed package and local shell | Passed. `https://localhost/` served the bundled interface, the native bridge was present, there were no service-worker registrations, and the web update control was hidden. |
-| In-place upgrade | Passed. Installed the exact OneDrive `Apps/Grapleton-0.1.0-test.apk` baseline, SHA-256 `c7755c85ab41d8f812a806426684c23cc9dd6e2d7f3e419ded5372991203db3d`. Compared a populated snapshot before and after the code 1 to code 2 update. Two racks, five bottles, all fields and every photo Blob's SHA-256 matched exactly. Package and development signer stayed identical. |
-| Bottom navigation | Passed. My Cellar, Rack, Collection and Settings were operated through their four visible tabs. The selected tab updated correctly. The native footer was hidden and Settings exposed privacy within the application shell. |
-| Selection sheets | Passed. Rack and grape selectors supported search, empty results, selection, close, Android Back and focus restoration. Selecting another rack restored focus to the replacement trigger after rendering. Corrected ArrowUp behavior was checked on the final artifact. |
-| Cross-rack recall | Passed. Searching 2010 Shiraz located the prepared bottle in QA Upgrade reserve, switched racks and highlighted its slot. Collection listed all five bottles. Canceled edits retained the original variety, dates and AUD price. |
-| Camera capture | Passed. Take photo opened Android's capture activity. Shutter and Done returned an image, which was saved with the bottle. The initial candidate's returned photo was 900 × 1200. The merged candidate repeated capture through process reclamation. |
-| Native photo selection | Passed. Choose photo opened Android Photo Picker. Selecting a public Grapleton icon fixture returned a 512 × 512 image and persisted the edited photo. |
-| Camera and picker cancellation | Passed. Android Back returned to the edit form with entered fields preserved. Cancel dismissed the form. |
-| Process reclamation during capture | Passed on the 0.2.0 functional candidate. With the external camera foreground, `am kill` removed the background Grapleton process and `pidof` returned no process. Shutter and Done restored its wine name, calendar date, AUD84.95, variety trigger and returned photo. Cancel retained the original stored record. Recovery exceeded the first harness's ten-second wait under workstation load, and the completed recovery was inspected afterward. |
-| Offline restart and storage | Passed in the prior native candidate. The 0.2.0 privacy and stored-data paths retain the same local storage implementation. |
-| Package replacement | Passed. `adb install -r` retained the populated cellar across both incremental APK replacements. Final resource changes were followed by launch and saved-photo verification. |
-| Android Back | Passed. Back closed the bottle detail dialog. On the merged candidate, Back closed the top calendar dialog and preserved the underlying bottle editor. |
-| Layout and branding | Passed. Final native portrait viewport and content width were both 412. Four bottom tabs remained inside the viewport and met 44-pixel minimum height. Overview photo containment was corrected after the initial draft overflowed with populated data. Screenshots show the glass mark, contained bottle cards and system bars. |
-| Calendar and price | Passed. Today selected an Australian display date, the exported value retained ISO format, and $49.95 displayed from its AUD field. Dated camera recovery also retained $69.50 and the selected purchase date. |
-| Native backup export | Passed on the merged candidate. Export opened Android's sharing sheet with the JSON filename. Inspected the generated private cache file and confirmed rack records, photo data, ISO purchase dates and AUD purchase price. The share sheet was dismissed without sending the file to another person or account. |
-| Native backup restore | Passed on the merged candidate. Opened actual Android DocumentsUI, chose Downloads and the synthetic exported JSON fixture, and confirmed replacement. Also verified cancellation, malformed-file rejection, valid import and persistence after reload. |
-| Accessibility | Collection had no axe WCAG A/AA violations. Modal focus and Back behavior were exercised. Physical TalkBack acceptance remains open. |
-| Packaged privacy page | Passed. Settings opened Privacy & your data as an application dialog, and Android Back dismissed it while retaining the current tab. |
-| Browser regression | Passed. The independent Chrome mobile suite covered older stored data and photos, named racks, duplicate A1 positions, grape selection, cross-rack search and movement, Collection, accessibility and offline operation. |
-| Build checks | The merged Gradle build completed. Inspected lint output reported zero errors and eleven warnings covering dependency updates, template resources and the legacy launcher icon shape. |
+| Source | `14e5dad1f7d6013798805e190c04674f3653f423` |
+| Package | `com.langsystems.grapleton` |
+| Version | `0.3.0`, version code `3`, minimum API `24`, target/compile API `36` |
+| Debug APK SHA-256 | `86720e4a8891763fefafdc804518c1d1a6dcdf12f7e564acd1890dc077fd0654` |
+| Unsigned AAB SHA-256 | `0c5a0a636f66f5562b56baf3aacb6b58f65a049a7bfc9c70be6981799dfebbe8` |
+| Development signer SHA-256 | `4e303ec8c6ac8d66c21b917fd9798692bf85ae5458cdab89a9ce97b37d0e8579` |
 
-The functional suites ran on the final native design candidate. A later correction adjusted ArrowUp within selection sheets, and a text-only correction clarified retention when installing an update. The final installer was rechecked for preserved data, the keyboard correction, version, Settings wording and dashboard geometry. Earlier camera/picker and native backup evidence remains applicable to the unchanged platform integrations.
+The final APK signature verifies. ZIP alignment passes `zipalign -c -P 16 -v 4`. All eight JNI libraries match between APK and AAB, and all ELF LOAD segments have 16 KB alignment. The AAB is unsigned. Final Gradle build and lint completed with zero errors and eleven warnings.
 
-During backup regression, the QA resume script selected an older dated export and intentionally restored its smaller synthetic cellar. The latest dated export was then restored and verified against the original five-bottle snapshot, including photo hashes, before the final installer retention check. This fixture-selection error did not establish an installer data-loss defect.
+## Runtime and upgrade
 
-## Artifact and boundary review
+Tests used the Ripper_Tipper_S23 AVD, Android 16/API 36, x86_64 Google APIs image, 1080 × 2400 physical resolution, density 420, and **System WebView 133.0.6943.137**. A 840 × 1800 resolution override supplied the 320 CSS-pixel configuration. Playwright operated the installed WebView. ADB and UI Automator operated Android and measured native bounds.
 
-The final APK's signature verifies, and ZIP alignment passes `zipalign -c -P 16 -v 4`. Every LOAD segment in both packaged JNI libraries has alignment `2**14` on all four ABIs. The AAB's eight native libraries match their APK counterparts byte for byte. This establishes static 16 KB alignment evidence. The emulator used for runtime testing has a 4 KB page size.
+The exact OneDrive `Apps/Grapleton-0.1.0-test.apk` baseline was Android 0.2.0/code 2, SHA-256 `b9589c5ad1a436ddd97a7bbb71d3d62b247bacbe88e8ab28fd3e778d1f5ac823`. Installing code 3 with `adb install -r` preserved the package and signer. A snapshot comparison retained both original racks, all five bottles, every field, and every photo Blob's SHA-256. Subsequent synthetic rack and long-name fixtures were confined to the QA rack.
 
-The final AAB is unsigned. No production upload or signing was performed. Source inspection found no configured remote server URL or native live-update mechanism. Native service-worker registration is bypassed. The manifest disables Android automatic backup and defines extraction exclusions. Portable JSON export is an explicit user action through the native sharing sheet. The final APK declares INTERNET, VIBRATE for selection feedback, and its own non-exported receiver permission. Broad camera or photo-library permissions were absent.
+## Installed rack and system-bar matrix
 
-During the initial heavily loaded emulator boot, Android displayed a System UI unresponsive dialog. Choosing Wait recovered the emulator and the external camera subsequently completed. Capacitor also logged transient safe-area injection messages during the initial load. The final rendered portrait and landscape screens were inspected for system-bar overlap.
+| Configuration | Rack coverage | Smallest observed slot | Actual WebView bounds in device pixels |
+| --- | --- | --- | --- |
+| 412 portrait, gesture navigation | Entire 3 × 6 and 3 × 8 racks | 48.15 × 166.23 CSS px for 8 columns | `[0,136]–[1080,2337]` |
+| 320 portrait, gesture navigation | Entire 3 × 6 rack | 49.83 × 94.23 CSS px | `[0,102]–[840,1737]` |
+| 412 portrait, gesture navigation | 12 × 12 and 26 × 24 racks use sections | 48.15 × 48.07 CSS px | `[0,136]–[1080,2337]` |
+| 863 × 360 landscape, gesture navigation | Paged maximum rack | 50.76 × 52.10 CSS px | `[136,74]–[2400,1017]` |
+| 412 portrait, three-button navigation | Paged maximum rack | 48.15 × 51.46 CSS px | `[0,136]–[1080,2274]` |
+| 320 portrait, three-button navigation | Paged maximum rack | 49.83 × 51.92 CSS px | `[0,102]–[840,1674]` |
+| 815 × 384 landscape, three-button navigation | Paged maximum rack | 51.15 × 64.10 CSS px | `[136,74]–[2274,1080]` |
 
-## Human acceptance
+These rack states had no page-wide or rack horizontal scrolling and no unnecessary body vertical scroll. Slot bounds stayed between the app bars. Actual WebView rectangles were compared with Android's status-bar, navigation-bar and display-cutout InsetsSource rectangles. CSS header, brand and bottom-navigation bounds were projected into the same native coordinate space, allowing two physical pixels for fractional rounding. This establishes system-bar clearance through native bounds as well as rendered geometry. The landscape Collection header remained at CSS y=0 after scrolling roughly 393 CSS pixels.
 
-Use a physical Android phone to verify camera focus, permissions and OEM photo selection, keyboard behavior, TalkBack, system bars, rotation, and a signed upgrade retaining a populated cellar. Test the intended minimum Android/WebView combination and a 16 KB device or emulator before asserting those runtime configurations. A clean installation with network disabled from its first launch was not separately executed, although bundled loading and offline relaunch were observed.
+The compact home removed duplicate bottle cards. Three rack cards fit the tested 412-pixel portrait viewport. With the maximum-length QA rack name, its measured body had a two-CSS-pixel tail, 841 pixels against an integer viewport height of 839, while all cards remained visible. Adding a bottle directly to Z24 in the maximum rack revealed and focused the last section. Previous/next section controls worked. Moving that bottle to A1 revealed and focused the first section. Global search revealed the correct section. Tapping, closing, saving and resizing preserved the selected position.
 
-The owner still needs to confirm the application identity, hold and recover the upload key, review the privacy/support contact and Play declarations, and complete Play internal testing before production promotion.
+## Anchored choices, keyboard and motion
 
-For the current date, Google's published submission requirement is target API 36 for new apps and updates. Native camera lifecycle handling follows the official Capacitor guidance. [Android target API requirements](https://developer.android.com/google/play/requirements/target-sdk), [16 KB compatibility guidance](https://developer.android.com/guide/practices/page-sizes), [Capacitor Camera](https://capacitorjs.com/docs/apis/camera).
+Short choices opened beside their source field. The observed style dropdown began six CSS pixels below its field. Long choices supplied search, empty results, selection, outside/Back dismissal and focus restoration while the bottle editor remained open.
 
-Final screenshot evidence is retained at `C:/Users/langa/Documents/ChatGPT/Grapleton/QA-Grapleton/android-affordance-final-home.png`, `android-affordance-final-settings.png` and `android-affordance-selector.png`. The same QA directory holds Collection, camera-recovery and upgrade-baseline screenshots. Screenshots were reviewed locally and are outside the public app artifact.
+Two landscape keyboard defects were reproduced and corrected. Initially Rack results fell below the 122-pixel usable viewport, and the choice option list had zero height. On the final flow, the actual keyboard reduced the WebView to `[136,74]–[2400,394]`, or about 863 × 122 CSS pixels. Rack search occupied 44 pixels, the results region about 56 pixels, and each compact result 48 pixels. The choice popup retained one fully visible 48-pixel option. Selecting Riesling through the real keyboard layout updated the parent field. Selecting a Rack result dismissed the keyboard, restored normal navigation, and restored focus to its highlighted slot after the responsive grid replacement.
 
-Emulator Wi-Fi and mobile data were re-enabled after the offline checks.
+The final candidate also handled a 120-character wine name and 60-character rack name in a fully visible 48-pixel result through ellipsis. The full values remained in saved data.
+
+Installed dialog motion was sampled over 250 milliseconds. Opacity and transform changed across eleven frames. Four interrupted close/reopen cycles remained coherent. Emulated `prefers-reduced-motion: reduce` in the installed WebView produced zero dialog animations and immediate close. The ordinary anchored geometry, matrix and temporal checks ran on the initial 0.3.0 functional candidate. Proportional final regressions covered compact home, far-position commits, real landscape keyboard selection, long text, focus retention and installer data continuity.
+
+## Evidence and limits
+
+Core revision `6a5cde2` was read before testing. The projected-workspace lesson was applied through actual slot-edge and target-size measurements. The native-interaction lesson was applied through installed paging, selection, Back and interruption flows. Temporal evidence supplemented screenshots for animation. Upgrade identity and data continuity were verified against the existing distributable APK.
+
+The native configuration uses SystemBars native inset handling, a contain viewport, and an initial contain hint. Capacitor's source includes a separate WebView 140+ passthrough branch when a page requests cover. That source was inspected. Runtime evidence here covers WebView 133 and the bundled contain viewport. Newer WebView versions, minimum-supported Android devices, OEM variations and a physical 16 KB device were not exercised.
+
+Physical-phone camera, haptics, TalkBack, gesture navigation, keyboard variations and a production-signed upgrade remain acceptance steps. Previous Android reports established native camera/picker, backup and process-recovery behavior. This polish pass did not repeat every unchanged integration. No Play upload or production signing was performed.
+
+Local evidence resides in `C:/Users/langa/Documents/ChatGPT/Grapleton/QA-Grapleton/`. Final screenshots include `polish-last-home.png`, `polish-last-rack.png`, `polish-last-landscape-ime.png` and `polish-last-landscape-selected.png`. Matrix measurements are in `native-polish-bounds.json`, temporal samples in `native-polish-interactions.json`, and final keyboard/focus measurements in `native-polish-last.json`.
+
+The emulator was returned to its physical resolution, portrait rotation, gesture navigation, and enabled Wi-Fi/mobile data.
