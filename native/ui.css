@@ -23,6 +23,7 @@ body.native-app {
 .native-app .hero-art { width:44%; right:0; }
 .native-app .hero-stats { margin-top:20px; }
 .native-app[data-native-route="cellar"] #view { margin-top:22px; }
+.native-app[data-native-route="cellar"] main { padding-bottom:24px; }
 .native-app .section-top h2 { font-family:inherit; font-size:1.4rem; font-weight:750; letter-spacing:-.035em; }
 .native-app .section-top p { font-size:.9rem; margin-top:5px; }
 .native-app h3 { font-family:inherit; font-size:1.1rem; line-height:1.3; font-weight:700; letter-spacing:-.02em; }
