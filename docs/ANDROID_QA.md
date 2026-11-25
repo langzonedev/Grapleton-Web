@@ -8,11 +8,11 @@ Independent QA reviewed the installed Android prototype on 25 November 2026. The
 
 | Item | Verified identity |
 | --- | --- |
-| Source | `14e5dad1f7d6013798805e190c04674f3653f423` |
+| Source | `eccc7a11d226b7742dbd20fd13bf5379c1cf7753` |
 | Package | `com.langsystems.grapleton` |
 | Version | `0.3.0`, version code `3`, minimum API `24`, target/compile API `36` |
-| Debug APK SHA-256 | `86720e4a8891763fefafdc804518c1d1a6dcdf12f7e564acd1890dc077fd0654` |
-| Unsigned AAB SHA-256 | `0c5a0a636f66f5562b56baf3aacb6b58f65a049a7bfc9c70be6981799dfebbe8` |
+| Debug APK SHA-256 | `1ed3824c53a97f5ef12c4daa4b988cdc5fb5faa9d9d7c6df3ce8321f6d8e8f69` |
+| Unsigned AAB SHA-256 | `3e22234db65030552a264ebefa2b30ad63dd1bafb591542cc22d9a9f7b737ca9` |
 | Development signer SHA-256 | `4e303ec8c6ac8d66c21b917fd9798692bf85ae5458cdab89a9ce97b37d0e8579` |
 
 The final APK signature verifies. ZIP alignment passes `zipalign -c -P 16 -v 4`. All eight JNI libraries match between APK and AAB, and all ELF LOAD segments have 16 KB alignment. The AAB is unsigned. Final Gradle build and lint completed with zero errors and eleven warnings.
@@ -37,7 +37,7 @@ The exact OneDrive `Apps/Grapleton-0.1.0-test.apk` baseline was Android 0.2.0/co
 
 These rack states had no page-wide or rack horizontal scrolling and no unnecessary body vertical scroll. Slot bounds stayed between the app bars. Actual WebView rectangles were compared with Android's status-bar, navigation-bar and display-cutout InsetsSource rectangles. CSS header, brand and bottom-navigation bounds were projected into the same native coordinate space, allowing two physical pixels for fractional rounding. This establishes system-bar clearance through native bounds as well as rendered geometry. The landscape Collection header remained at CSS y=0 after scrolling roughly 393 CSS pixels.
 
-The compact home removed duplicate bottle cards. Three rack cards fit the tested 412-pixel portrait viewport. With the maximum-length QA rack name, its measured body had a two-CSS-pixel tail, 841 pixels against an integer viewport height of 839, while all cards remained visible. Adding a bottle directly to Z24 in the maximum rack revealed and focused the last section. Previous/next section controls worked. Moving that bottle to A1 revealed and focused the first section. Global search revealed the correct section. Tapping, closing, saving and resizing preserved the selected position.
+The compact home removed duplicate bottle cards. A final four-pixel padding adjustment removed the measured two-pixel rounding tail. The final APK was installed in place and retested with three racks and a 60-character rack name. Viewport, client and scroll heights were all 839 CSS pixels, with viewport and content widths both 412. Adding a bottle directly to Z24 in the maximum rack revealed and focused the last section. Previous/next section controls worked. Moving that bottle to A1 revealed and focused the first section. Global search revealed the correct section. Tapping, closing, saving and resizing preserved the selected position.
 
 ## Anchored choices, keyboard and motion
 
@@ -47,7 +47,7 @@ Two landscape keyboard defects were reproduced and corrected. Initially Rack res
 
 The final candidate also handled a 120-character wine name and 60-character rack name in a fully visible 48-pixel result through ellipsis. The full values remained in saved data.
 
-Installed dialog motion was sampled over 250 milliseconds. Opacity and transform changed across eleven frames. Four interrupted close/reopen cycles remained coherent. Emulated `prefers-reduced-motion: reduce` in the installed WebView produced zero dialog animations and immediate close. The ordinary anchored geometry, matrix and temporal checks ran on the initial 0.3.0 functional candidate. Proportional final regressions covered compact home, far-position commits, real landscape keyboard selection, long text, focus retention and installer data continuity.
+Installed dialog motion was sampled over 250 milliseconds. Opacity and transform changed across eleven frames. Four interrupted close/reopen cycles remained coherent. Emulated `prefers-reduced-motion: reduce` in the installed WebView produced zero dialog animations and immediate close. The ordinary anchored geometry, matrix and temporal checks ran on the initial 0.3.0 functional candidate. Proportional final regressions covered compact home, far-position commits, real landscape keyboard selection, long text, focus retention and installer data continuity. The last padding-only revision received an in-place installation and populated home-fit check.
 
 ## Evidence and limits
 
