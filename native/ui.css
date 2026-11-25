@@ -196,4 +196,26 @@ body.native-app {
 .native-app[data-native-route="rack"] .search-box:not(:focus-within) :is(#results,#search-status) { display:none; }
 .native-app[data-native-route="rack"] .search-box:focus-within #search-status:not(:empty) { position:absolute; z-index:2; top:44px; inset-inline:0; margin:0; padding:7px 12px; border:1px solid var(--line); background:var(--card); font-size:.75rem; border-radius:12px 12px 0 0; }
 .native-app[data-native-route="rack"] .search-box:focus-within #results:not(:empty) { position:absolute; top:74px; inset-inline:0; margin:0; max-height:min(210px,calc(100dvh - 165px)); padding:5px; background:var(--card); border:1px solid var(--line); border-radius:0 0 12px 12px; box-shadow:0 10px 20px #351d2820; }
+@media(orientation:landscape) and (max-height:260px) {
+  body.native-app[data-native-route="rack"]:has(.search-box:focus-within) { --native-bottom:0px; padding-bottom:0; }
+  .native-app[data-native-route="rack"]:has(.search-box:focus-within) :is(.header,.native-bottom-nav,.rack-controls,.rack-panel) { display:none; }
+  .native-app[data-native-route="rack"]:has(.search-box:focus-within) #toast { display:none; }
+  .native-app[data-native-route="rack"]:has(.search-box:focus-within) :is(main,#view,#view>section) { display:flex; flex:1; flex-direction:column; min-height:0; width:100%; margin:0; padding:0; gap:0; }
+  .native-app[data-native-route="rack"]:has(.search-box:focus-within) .search-box { display:flex; flex:1; flex-direction:column; min-height:0; margin:0; padding:4px 8px; }
+  .native-app[data-native-route="rack"]:has(.search-box:focus-within) #search { flex:none; height:44px; min-height:44px; padding:8px 11px 8px 41px; }
+  .native-app[data-native-route="rack"]:has(.search-box:focus-within) #search-status:not(:empty) { position:static; flex:none; min-height:14px; padding:0 4px; margin:0; border:0; border-radius:0; font-size:.67rem; line-height:14px; background:transparent; }
+  .native-app[data-native-route="rack"]:has(.search-box:focus-within) #results:not(:empty) { position:static; flex:1; min-height:0; max-height:none; align-content:start; overflow:auto; margin:0; padding:0; border:0; border-radius:0; box-shadow:none; gap:3px; }
+  .native-app[data-native-route="rack"]:has(.search-box:focus-within) .result { min-height:48px; padding:4px 8px; grid-template-columns:32px minmax(0,1fr) auto; gap:9px; border-radius:10px; }
+  .native-app[data-native-route="rack"]:has(.search-box:focus-within) .result-art { height:32px; }
+  .native-app[data-native-route="rack"]:has(.search-box:focus-within) .result strong { font-size:.82rem; line-height:18px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .native-app[data-native-route="rack"]:has(.search-box:focus-within) .result small { font-size:.7rem; line-height:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .native-app[data-native-route="rack"]:has(.search-box:focus-within) .result small:first-of-type { display:none; }
+  .native-app dialog.native-choice-popover:has(.native-choice-search:not([hidden])) { padding:4px; }
+  .native-choice-popover:has(.native-choice-search:not([hidden])) .native-choice-top { display:contents; }
+  .native-choice-popover:has(.native-choice-search:not([hidden])) .native-choice-top h2 { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+  .native-app .native-choice-popover:has(.native-choice-search:not([hidden])) .native-choice-close { position:absolute; top:4px; right:4px; width:44px; height:44px; min-height:44px; }
+  .native-choice-popover:has(.native-choice-search:not([hidden])) .native-choice-search { font-size:0; line-height:0; gap:0; padding:0 48px 4px 0; }
+  .native-app .native-choice-popover:has(.native-choice-search:not([hidden])) input { height:44px; min-height:44px; font-size:16px; line-height:24px; }
+  .native-choice-popover:has(.native-choice-search:not([hidden])) .native-choice-options { flex:1; min-height:0; }
+}
 @media(prefers-reduced-motion:reduce) { .native-nav-icon { transition:none; } .native-app dialog::backdrop { animation:none!important; } }

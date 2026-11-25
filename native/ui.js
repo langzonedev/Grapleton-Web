@@ -144,12 +144,15 @@ export function openSelect(select) {
     const below = Math.max(0, bottomEdge - bounds.bottom - 6);
     const above = Math.max(0, bounds.top - topEdge - 6);
     const openBelow = below >= Math.min(240, above);
-    const available = Math.min(420, Math.max(80, openBelow ? below : above), bottomEdge - topEdge);
+    const compactSearch = (viewport?.height ?? innerHeight) < 180 && !popover.querySelector('.native-choice-search').hidden;
+    const available = compactSearch ? bottomEdge - topEdge
+      : Math.min(420, Math.max(80, openBelow ? below : above), bottomEdge - topEdge);
     popover.style.width = width + 'px';
     popover.style.maxHeight = available + 'px';
     popover.style.left = Math.max(leftEdge, Math.min(bounds.left, rightEdge - width)) + 'px';
     const height = popover.getBoundingClientRect().height;
-    popover.style.top = Math.max(topEdge, Math.min(openBelow ? bounds.bottom + 6 : bounds.top - height - 6, bottomEdge - height)) + 'px';
+    popover.style.top = (compactSearch ? topEdge
+      : Math.max(topEdge, Math.min(openBelow ? bounds.bottom + 6 : bounds.top - height - 6, bottomEdge - height))) + 'px';
     popover.style.transformOrigin = openBelow ? 'top left' : 'bottom left';
   };
   const normalise = value => value.toLocaleLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');

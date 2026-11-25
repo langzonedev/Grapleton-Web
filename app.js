@@ -153,10 +153,12 @@ function rackMarkup() {
 function updateNativeRack() {
   const panel = view.querySelector('[aria-label="Bottle rack"]');
   if (!panel) return;
+  const focusedKey = document.activeElement?.closest('.slot')?.dataset.key;
   rackObserver.disconnect();
   panel.outerHTML = rackMarkup();
   rackObserver.observe($('.rack-scroll'));
   updateSearch();
+  if (focusedKey) focusSlot(focusedKey);
 }
 
 const rackObserver = new ResizeObserver(([{ target }]) => {
@@ -174,7 +176,8 @@ const rackObserver = new ResizeObserver(([{ target }]) => {
     const availableHeight = needsPager ? fullHeight - (pagerHeight || 48) : fullHeight;
     const rows = Math.max(1, Math.min(rack.rows, Math.floor((availableHeight + 3) / 51)));
     if (columns === rackWindow.columns && rows === rackWindow.rows) return;
-    rackWindow.reveal = highlighted && target.querySelector('[data-key="' + highlighted + '"]') ? highlighted : rackWindow.anchor;
+    rackWindow.reveal = document.activeElement?.closest('.slot')?.dataset.key
+      ?? (highlighted && target.querySelector('[data-key="' + highlighted + '"]') ? highlighted : rackWindow.anchor);
     rackWindow.columns = columns;
     rackWindow.rows = rows;
     updateNativeRack();
@@ -388,6 +391,7 @@ function bindRackControl() {
 }
 
 function locate(key, rackId) {
+  if (window.grapletonNative && document.activeElement?.closest('.search-box')) document.activeElement.blur();
   activeRackId = rackId;
   highlighted = key;
   rackWindow.reveal = key;
