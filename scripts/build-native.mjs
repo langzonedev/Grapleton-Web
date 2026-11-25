@@ -6,9 +6,11 @@ await mkdir('dist-native', { recursive: true });
 await cp('assets', 'dist-native/assets', { recursive: true });
 for (const file of ['style.css', 'calendar.css', 'calendar.js']) await cp(file, 'dist-native/' + file);
 await cp('privacy.html', 'dist-native/privacy.html');
+await cp('native/ui.css', 'dist-native/native-ui.css');
 const html = await readFile('index.html', 'utf8');
 await writeFile('dist-native/index.html', html
   .replace('<link rel="manifest" href="./manifest.webmanifest">', '')
+  .replace('<link rel="stylesheet" href="./calendar.css">', '<link rel="stylesheet" href="./calendar.css"><link rel="stylesheet" href="./native-ui.css">')
   .replace('Stored in this browser', 'Stored on this device'));
 await build({
   entryPoints: ['native/entry.js'],

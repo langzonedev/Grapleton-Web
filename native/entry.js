@@ -3,8 +3,16 @@ import { Camera, CameraSource, CameraResultType } from '@capacitor/camera';
 import { App } from '@capacitor/app';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
+import { Haptics } from '@capacitor/haptics';
+import { setupNativeUI } from './ui.js';
+
+const info = await App.getInfo();
 
 window.grapletonNative = {
+  version: info.version,
+  selectionFeedback() {
+    Haptics.selectionChanged().catch(() => {});
+  },
   async exportBackup(data, filename) {
     const file = await Filesystem.writeFile({
       path: 'backups/' + filename,
@@ -38,8 +46,8 @@ await App.addListener('backButton', () => {
   const dialog = [...document.querySelectorAll('dialog[open]')].at(-1);
   if (dialog) {
     if (dialog.dispatchEvent(new Event('cancel', { cancelable: true }))) dialog.close();
-  } else if (location.hash && location.hash !== '#rack') {
-    location.hash = 'rack';
+  } else if (location.hash && location.hash !== '#cellar') {
+    location.hash = 'cellar';
   } else {
     App.minimizeApp();
   }
@@ -53,4 +61,6 @@ await App.addListener('appRestoredResult', async result => {
 });
 
 if (!Capacitor.isNativePlatform()) throw new Error('Use index.html for the browser app.');
+if (!location.hash) history.replaceState(null, '', '#cellar');
+setupNativeUI();
 await import('../app.js');

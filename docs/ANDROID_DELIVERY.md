@@ -1,10 +1,10 @@
 # Grapleton Android delivery
 
-Prepared 24 November 2026. The Android shell uses Capacitor 8 with Grapleton's existing interface and local IndexedDB data model. Native camera, system photo selection and Android Back handling are included. Packaged assets allow first launch offline. Android releases arrive through Google Play, while the browser app retains its service-worker update control.
+Updated 25 November 2026. The Android shell uses Capacitor 8 with Grapleton's local IndexedDB data model. It has a dedicated app layout with persistent My Cellar, Rack, Collection and Settings navigation, wine-related icons, selection sheets and selection haptics. Native camera, system photo selection, sharing and Android Back handling are included. Privacy is accessible from Settings. Packaged assets allow offline use. Android releases arrive through Google Play, while the browser app retains its service-worker update control.
 
 ## Identity and versions
 
-The proposed application ID is `com.langsystems.grapleton`, version name `0.1.0`, version code `1`. Confirm this ID with the account owner before the first Play upload. After publication the application ID and signing identity must stay stable. Increase version code for every subsequent Play artifact. The build targets API 36 and supports API 24 upwards, subject to device WebView compatibility.
+The proposed application ID is `com.langsystems.grapleton`, version name `0.2.0`, version code `2`. This test update retains the package and workstation signing identity of the original `0.1.0` / code `1` candidate. Confirm this ID with the account owner before the first Play upload. After publication the application ID and signing identity must stay stable. Increase version code for every subsequent Play artifact. The build targets API 36 and supports API 24 upwards, subject to device WebView compatibility.
 
 ## Build
 

@@ -118,10 +118,37 @@ const rackObserver = new ResizeObserver(([{ target }]) => {
   if (hint && target.isConnected) hint.hidden = target.scrollWidth <= target.clientWidth;
 });
 
+function cellarOverview() {
+  const cards = cellar.racks.map(rack => {
+    const count = entries(rack).length;
+    const capacity = rack.rows * rack.columns;
+    const preview = slotKeys(rack).slice(0, 18).map(key =>
+      '<i class="' + (rack.bottles[key] ? 'filled' : '') + '"></i>').join('');
+    return '<button class="cellar-rack" data-action="open-rack" data-rack="' + rack.id + '">' +
+      '<span class="rack-mini" aria-hidden="true">' + preview + '</span><span><strong>' + escape(rack.name) +
+      '</strong><small>' + count + ' of ' + capacity + ' slots filled</small></span><span aria-hidden="true">›</span></button>';
+  }).join('');
+  const bottles = cellar.racks.flatMap(rack => entries(rack).map(key => ({ rack, key }))).slice(0, 4);
+  return '<section class="native-overview"><div class="section-top"><h2>Your racks</h2>' +
+    '<button class="secondary" data-action="new-rack">＋ Add rack</button></div><div class="cellar-racks">' + cards +
+    '</div><div class="section-top overview-collection"><h2>Your bottles</h2><a href="#collection">View all</a></div>' +
+    (bottles.length ? '<div class="overview-bottles">' + bottles.map(({ rack, key }) => {
+      const bottle = rack.bottles[key];
+      return '<button class="overview-bottle" data-action="slot" data-rack="' + rack.id + '" data-key="' + key + '">' +
+        '<span class="overview-bottle-photo">' + photoMarkup(bottle) + '</span><strong>' + escape(bottle.name) + '</strong>' +
+        '<small>' + escape([bottle.vintage, bottle.variety || bottle.style].filter(Boolean).join(' · ')) + '</small>' +
+        '<small>' + escape(rack.name) + ' · ' + slotName(key) + '</small></button>';
+    }).join('') + '</div>' : '<div class="native-empty"><p>Your first bottle starts here.</p>' +
+      '<button class="primary" data-action="add">Add a bottle</button></div>') + '</section>';
+}
+
 function render() {
   rackObserver.disconnect();
   const requested = location.hash.slice(1);
-  route = ['collection', 'settings'].includes(requested) ? requested : 'rack';
+  route = ['rack', 'collection', 'settings'].includes(requested) ? requested
+    : window.grapletonNative ? 'cellar' : 'rack';
+  if (window.grapletonNativeUI) window.grapletonNativeUI.renderNavigation(route);
+  $('.hero').hidden = !!window.grapletonNative && route !== 'cellar';
   document.querySelectorAll('#nav a').forEach(link => {
     if (link.hash === '#' + route) link.setAttribute('aria-current', 'page');
     else link.removeAttribute('aria-current');
@@ -130,16 +157,22 @@ function render() {
   const capacity = cellar.racks.reduce((total, rack) => total + rack.rows * rack.columns, 0);
   $('#hero-stats').innerHTML = '<span><b>' + count + '</b> ' + (count === 1 ? 'bottle' : 'bottles') +
     '</span><span><b>' + (capacity - count) + '</b> open slots</span>';
+  if (route === 'cellar') {
+    view.innerHTML = cellarOverview();
+    return;
+  }
   if (route === 'settings') {
-    view.innerHTML = '<section class="settings"><h2>Cellar settings</h2><div class="rack-panel settings-panel">' +
+    view.innerHTML = '<section class="settings"><h2>Cellar settings</h2>' + (window.grapletonNative ? '' : '<div class="rack-panel settings-panel">' +
       '<div><h3>Racks</h3>' + rackControls() + '</div>' +
-      '<button class="secondary" data-action="rack-settings">Edit rack</button></div>' +
+      '<button class="secondary" data-action="rack-settings">Edit rack</button></div>') +
       '<div class="rack-panel"><h3>Local storage</h3><p>' + (window.grapletonNative
         ? 'Your bottles and photos stay on this device. Uninstalling Grapleton or clearing its app data removes your cellar. App updates arrive through Google Play.'
         : 'Your bottles and photos stay in this browser on this device. Clearing site data removes your cellar.</p><p>To install Grapleton, use your browser’s install option or Add to Home Screen from the Share menu on iPhone.') +
       '</p></div>' +
 
-      '<div class="rack-panel"><h3>Backup &amp; restore</h3><p>Save your entire cellar, including photos, to a portable file. Keep it somewhere safe. Restoring replaces your current cellar.</p><div class="dialog-actions"><button class="secondary" data-action="backup-export">Export backup</button><button class="secondary" data-action="backup-import">Restore backup</button></div><p id="backup-status" role="status" aria-live="polite"></p><input id="backup-file" type="file" accept=".json,.grapleton,application/json" hidden></div></section>';
+      '<div class="rack-panel"><h3>Backup &amp; restore</h3><p>Save your entire cellar, including photos, to a portable file. Keep it somewhere safe. Restoring replaces your current cellar.</p><div class="dialog-actions"><button class="secondary" data-action="backup-export">Export backup</button><button class="secondary" data-action="backup-import">Restore backup</button></div><p id="backup-status" role="status" aria-live="polite"></p><input id="backup-file" type="file" accept=".json,.grapleton,application/json" hidden></div>' +
+      (window.grapletonNative ? '<div class="rack-panel settings-about"><h3>About Grapleton</h3><p>Version ' +
+        escape(window.grapletonNative.version) + '</p><button class="secondary" data-action="privacy">Privacy &amp; your data</button></div>' : '') + '</section>';
     bindRackControl();
     return;
   }
@@ -377,7 +410,7 @@ function showBottle(key) {
       extra.map(([label, value]) => '<dt>' + label + '</dt><dd>' + escape(label === 'Purchased' || label === 'Drink by' ? displayDate(value) : value) + '</dd>').join('') +
       '</dl></details>' : '') +
     '<div class="dialog-actions"><button class="quiet danger" data-action="remove" data-key="' + key + '">Remove</button>' +
-    (route === 'collection' ? '<button class="secondary" data-action="locate" data-key="' + key + '">Show in rack</button>' : '') +
+    (route === 'collection' || route === 'cellar' ? '<button class="secondary" data-action="locate" data-key="' + key + '">Show in rack</button>' : '') +
     '<button class="primary" data-action="edit" data-key="' + key + '">Edit bottle</button></div>');
 }
 
@@ -641,11 +674,33 @@ function removeBottle(key) {
     '">Keep bottle</button><button class="primary" data-action="confirm-remove" data-key="' + key + '">Remove bottle</button></div>');
 }
 
+async function showPrivacy() {
+  try {
+    const response = await fetch('./privacy.html');
+    if (!response.ok) throw new Error('Privacy page unavailable');
+    const document = new DOMParser().parseFromString(await response.text(), 'text/html');
+    const content = document.querySelector('main');
+    content.querySelector('a')?.remove();
+    content.querySelector('h1')?.remove();
+    openDialog('Privacy & your data', '<div class="privacy-content">' + content.innerHTML + '</div>');
+  } catch {
+    notify('Could not open the privacy page. Please try again.');
+  }
+}
+
 document.addEventListener('click', event => {
   const control = event.target.closest('[data-action]');
   if (!control || !cellar || saving) return;
   const { action, key, rack } = control.dataset;
   switch (action) {
+    case 'privacy': showPrivacy(); break;
+    case 'open-rack':
+      activeRackId = rack;
+      highlighted = undefined;
+      query = '';
+      if (route === 'rack') render();
+      else location.hash = 'rack';
+      break;
     case 'backup-export': exportBackup(); break;
     case 'backup-import': {
       const input = $('#backup-file');
@@ -830,6 +885,7 @@ try {
   window.addEventListener('hashchange', () => {
     render();
     if (route === 'rack' && highlighted) focusSlot(highlighted, true);
+    else if (window.grapletonNative) window.scrollTo({ top: 0 });
   });
   window.addEventListener('focus', () => refresh().catch(console.warn));
   dialog.addEventListener('close', () => refresh().catch(console.warn));
