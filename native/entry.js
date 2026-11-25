@@ -45,7 +45,9 @@ window.grapletonNative = {
 await App.addListener('backButton', () => {
   const dialog = [...document.querySelectorAll('dialog[open]')].at(-1);
   if (dialog) {
-    if (dialog.dispatchEvent(new Event('cancel', { cancelable: true }))) dialog.close();
+    if (dialog.dispatchEvent(new Event('cancel', { cancelable: true }))) {
+      window.grapletonNativeUI.closeDialog(dialog);
+    }
   } else if (location.hash && location.hash !== '#cellar') {
     location.hash = 'cellar';
   } else {

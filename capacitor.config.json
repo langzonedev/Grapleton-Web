@@ -2,6 +2,12 @@
   "appId": "com.langsystems.grapleton",
   "appName": "Grapleton",
   "webDir": "dist-native",
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "native",
+      "initialViewportFitValueHint": "contain"
+    }
+  },
   "android": {
     "backgroundColor": "#f8f4ee",
     "allowMixedContent": false

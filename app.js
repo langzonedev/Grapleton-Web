@@ -37,6 +37,7 @@ let dialogContent = 0;
 let saving = false;
 let toastTimer;
 let recoveredCameraDraft;
+const rackWindow = { rackId: null, page: 0, columns: 6, rows: 4, reveal: null, anchor: '1:1' };
 
 function photoMarkup(bottle) {
   if (!bottle.photo) return '<img class="illustration" src="./assets/bottle-' +
@@ -96,9 +97,38 @@ function updateSearch() {
   });
 }
 
+function nativeRackSection(rack) {
+  if (rackWindow.rackId !== rack.id) {
+    rackWindow.rackId = rack.id;
+    rackWindow.page = 0;
+  }
+  const columns = Math.min(rack.columns, rackWindow.columns);
+  const rows = Math.min(rack.rows, rackWindow.rows);
+  const columnPages = Math.ceil(rack.columns / columns);
+  const pages = columnPages * Math.ceil(rack.rows / rows);
+  if (rackWindow.reveal) {
+    const [row, column] = rackWindow.reveal.split(':').map(Number);
+    rackWindow.page = Math.floor((row - 1) / rows) * columnPages + Math.floor((column - 1) / columns);
+    rackWindow.reveal = null;
+  }
+  rackWindow.page = Math.max(0, Math.min(pages - 1, rackWindow.page));
+  const firstRow = Math.floor(rackWindow.page / columnPages) * rows + 1;
+  const firstColumn = (rackWindow.page % columnPages) * columns + 1;
+  const lastRow = Math.min(rack.rows, firstRow + rows - 1);
+  const lastColumn = Math.min(rack.columns, firstColumn + columns - 1);
+  rackWindow.anchor = firstRow + ':' + firstColumn;
+  return { firstRow, firstColumn, lastRow, lastColumn, pages };
+}
+
 function rackMarkup() {
   const rack = currentRack();
-  const slots = slotKeys(rack).map(key => {
+  const section = window.grapletonNative ? nativeRackSection(rack) : null;
+  const visibleKeys = slotKeys(rack).filter(key => {
+    if (!section) return true;
+    const [row, column] = key.split(':').map(Number);
+    return row >= section.firstRow && row <= section.lastRow && column >= section.firstColumn && column <= section.lastColumn;
+  });
+  const slots = visibleKeys.map(key => {
     const bottle = rack.bottles[key];
     return '<button data-action="slot" data-key="' + key + '" class="slot ' +
       (bottle ? 'occupied ' + styles[bottle.style] : 'empty') + (key === highlighted ? ' located' : '') +
@@ -106,14 +136,50 @@ function rackMarkup() {
       '<span class="coordinate">' + slotName(key) + '</span>' +
       (bottle ? photoMarkup(bottle) : '<span class="plus" aria-hidden="true">+</span>') + '</button>';
   }).join('');
+  const columns = section ? section.lastColumn - section.firstColumn + 1 : rack.columns;
+  const rows = section ? section.lastRow - section.firstRow + 1 : rack.rows;
+  const pager = section && section.pages > 1 ? '<div class="rack-pager"><button class="quiet" data-action="rack-page" data-step="-1" aria-label="Previous rack section"' +
+    (rackWindow.page === 0 ? ' disabled' : '') + '>‹</button><span role="status">Rows ' +
+    String.fromCharCode(64 + section.firstRow) + '–' + String.fromCharCode(64 + section.lastRow) + ' · columns ' + section.firstColumn + '–' + section.lastColumn +
+    '<small>Section ' + (rackWindow.page + 1) + ' of ' + section.pages + '</small></span>' +
+    '<button class="quiet" data-action="rack-page" data-step="1" aria-label="Next rack section"' + (rackWindow.page === section.pages - 1 ? ' disabled' : '') + '>›</button></div>' : '';
   return '<section class="rack-panel" aria-label="Bottle rack"><div class="panel-top"><div><h3>' + escape(rack.name) + '</h3>' +
     '<p>' + rack.rows + ' rows × ' + rack.columns + ' columns</p></div>' +
     '<button class="secondary" data-action="rack-settings">Edit rack</button></div>' +
-    '<div class="rack-scroll"><div class="rack" style="--columns:' + rack.columns + '">' + slots + '</div></div>' +
-    '<div class="legend"><span><i class="legend-empty">+</i> Empty</span><span><i class="legend-full"></i> Occupied</span><span class="rack-hint" hidden>Scroll sideways for more slots</span></div></section>';
+    '<div class="rack-scroll"><div class="rack" style="--columns:' + columns + ';--visible-columns:' + columns + ';--visible-rows:' + rows + '">' + slots + '</div></div>' +
+    pager + (window.grapletonNative ? '' : '<div class="legend"><span><i class="legend-empty">+</i> Empty</span><span><i class="legend-full"></i> Occupied</span><span class="rack-hint" hidden>Scroll sideways for more slots</span></div>') + '</section>';
+}
+
+function updateNativeRack() {
+  const panel = view.querySelector('[aria-label="Bottle rack"]');
+  if (!panel) return;
+  rackObserver.disconnect();
+  panel.outerHTML = rackMarkup();
+  rackObserver.observe($('.rack-scroll'));
+  updateSearch();
 }
 
 const rackObserver = new ResizeObserver(([{ target }]) => {
+  if (window.grapletonNative) {
+    if (!target.isConnected || target.clientHeight < 48) return;
+    const style = getComputedStyle(target);
+    const width = target.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    const height = target.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+    const rack = currentRack();
+    const columns = Math.max(1, Math.min(rack.columns, Math.floor((width + 3) / 51)));
+    const pagerHeight = $('.rack-pager')?.getBoundingClientRect().height ?? 0;
+    const fullHeight = height + pagerHeight;
+    const fullRows = Math.max(1, Math.min(rack.rows, Math.floor((fullHeight + 3) / 51)));
+    const needsPager = columns < rack.columns || fullRows < rack.rows;
+    const availableHeight = needsPager ? fullHeight - (pagerHeight || 48) : fullHeight;
+    const rows = Math.max(1, Math.min(rack.rows, Math.floor((availableHeight + 3) / 51)));
+    if (columns === rackWindow.columns && rows === rackWindow.rows) return;
+    rackWindow.reveal = highlighted && target.querySelector('[data-key="' + highlighted + '"]') ? highlighted : rackWindow.anchor;
+    rackWindow.columns = columns;
+    rackWindow.rows = rows;
+    updateNativeRack();
+    return;
+  }
   const hint = $('.rack-hint');
   if (hint && target.isConnected) hint.hidden = target.scrollWidth <= target.clientWidth;
 });
@@ -128,18 +194,9 @@ function cellarOverview() {
       '<span class="rack-mini" aria-hidden="true">' + preview + '</span><span><strong>' + escape(rack.name) +
       '</strong><small>' + count + ' of ' + capacity + ' slots filled</small></span><span aria-hidden="true">›</span></button>';
   }).join('');
-  const bottles = cellar.racks.flatMap(rack => entries(rack).map(key => ({ rack, key }))).slice(0, 4);
   return '<section class="native-overview"><div class="section-top"><h2>Your racks</h2>' +
     '<button class="secondary" data-action="new-rack">＋ Add rack</button></div><div class="cellar-racks">' + cards +
-    '</div><div class="section-top overview-collection"><h2>Your bottles</h2><a href="#collection">View all</a></div>' +
-    (bottles.length ? '<div class="overview-bottles">' + bottles.map(({ rack, key }) => {
-      const bottle = rack.bottles[key];
-      return '<button class="overview-bottle" data-action="slot" data-rack="' + rack.id + '" data-key="' + key + '">' +
-        '<span class="overview-bottle-photo">' + photoMarkup(bottle) + '</span><strong>' + escape(bottle.name) + '</strong>' +
-        '<small>' + escape([bottle.vintage, bottle.variety || bottle.style].filter(Boolean).join(' · ')) + '</small>' +
-        '<small>' + escape(rack.name) + ' · ' + slotName(key) + '</small></button>';
-    }).join('') + '</div>' : '<div class="native-empty"><p>Your first bottle starts here.</p>' +
-      '<button class="primary" data-action="add">Add a bottle</button></div>') + '</section>';
+    '</div></section>';
 }
 
 function render() {
@@ -333,6 +390,7 @@ function bindRackControl() {
 function locate(key, rackId) {
   activeRackId = rackId;
   highlighted = key;
+  rackWindow.reveal = key;
   if (route !== 'rack') {
     location.hash = 'rack';
     return;
@@ -361,14 +419,26 @@ function openDialog(title, content) {
     '</h2><button class="quiet close" aria-label="Close" data-action="close">×</button></div>' + content;
   dialog.setAttribute('aria-labelledby', 'dialog-title');
   if (!dialog.open) dialog.showModal();
-  else $('.close', dialog).focus();
+  else $('.close', dialog).focus({ preventScroll: true });
+  window.grapletonNativeUI?.animateDialog(dialog);
+}
+
+function closeDialog() {
+  if (window.grapletonNativeUI) return window.grapletonNativeUI.closeDialog(dialog);
+  dialog.close();
+  return Promise.resolve();
 }
 
 dialog.addEventListener('close', () => {
   if (!dialog.open && document.activeElement === document.body && focusReturn?.isConnected) focusReturn.focus();
+  else if (!dialog.open && route === 'rack' && highlighted) focusSlot(highlighted);
 });
 dialog.addEventListener('cancel', event => {
   if (saving) event.preventDefault();
+  else if (window.grapletonNativeUI) {
+    event.preventDefault();
+    closeDialog();
+  }
 });
 
 // Dates are stored as YYYY-MM-DD and presented in Australian day/month/year order.
@@ -439,6 +509,9 @@ async function compressPhoto(file) {
 
 async function commit(next, button, error, message, key, rackId = currentRack().id) {
   if (saving) return;
+  const controls = window.grapletonNative ? [...dialog.querySelectorAll('button,input,select,textarea')] : [];
+  const disabledStates = controls.map(control => control.disabled);
+  controls.forEach(control => { control.disabled = true; });
   saving = true;
   button.disabled = true;
   error.textContent = '';
@@ -446,7 +519,11 @@ async function commit(next, button, error, message, key, rackId = currentRack().
     cellar = await saveCellar(next, cellar.revision);
     if (activeRackId !== rackId) highlighted = undefined;
     activeRackId = rackId;
-    dialog.close();
+    if (window.grapletonNative && key) {
+      highlighted = key;
+      rackWindow.reveal = key;
+    }
+    await closeDialog();
     render();
     releaseUnusedImages();
     if (!key || !focusSlot(key)) ($('#rack-picker') ?? $('#search'))?.focus();
@@ -457,6 +534,7 @@ async function commit(next, button, error, message, key, rackId = currentRack().
     button.disabled = false;
   } finally {
     saving = false;
+    controls.forEach((control, index) => { control.disabled = disabledStates[index]; });
   }
 }
 
@@ -472,6 +550,7 @@ function editBottle(key, recovered) {
   openDialog(existing ? 'Edit bottle' : 'Add bottle', '');
   const generation = dialogContent;
   dialog.append($('#bottle-form').content.cloneNode(true));
+  window.grapletonNativeUI?.animateDialog(dialog);
   const form = $('#edit-form');
   const select = form.elements.slot;
   if (existing) $('[data-action="cancel-edit"]', form).dataset.key = key;
@@ -631,7 +710,8 @@ function editBottle(key, recovered) {
     commit({ ...cellar, racks }, submit, $('.error', form),
       'Bottle saved in ' + destination.name + ' · ' + slotName(slot) + '.', slot, destinationId);
   });
-  $('.close', dialog).focus();
+  $('.close', dialog).focus({ preventScroll: true });
+  dialog.scrollTop = 0;
 }
 
 function editRack(creating = false) {
@@ -693,6 +773,14 @@ document.addEventListener('click', event => {
   if (!control || !cellar || saving) return;
   const { action, key, rack } = control.dataset;
   switch (action) {
+    case 'rack-page':
+      rackWindow.page += Number(control.dataset.step);
+      highlighted = undefined;
+      updateNativeRack();
+      const pagerFocus = view.querySelector('.rack-pager button[data-step="' + control.dataset.step + '"]:not(:disabled)')
+        ?? view.querySelector('.rack-pager button:not(:disabled)');
+      pagerFocus?.focus({ preventScroll: true });
+      break;
     case 'privacy': showPrivacy(); break;
     case 'open-rack':
       activeRackId = rack;
@@ -711,6 +799,11 @@ document.addEventListener('click', event => {
     case 'rack-settings': editRack(); break;
     case 'new-rack': editRack(true); break;
     case 'slot':
+      if (route === 'rack') {
+        highlighted = key;
+        $('.located', view)?.classList.remove('located');
+        control.classList.add('located');
+      }
       if (rack && rack !== activeRackId) {
         activeRackId = rack;
         highlighted = undefined;
@@ -718,11 +811,14 @@ document.addEventListener('click', event => {
       if (currentRack().bottles[key]) showBottle(key);
       else editBottle(key);
       break;
-    case 'locate': if (dialog.open) dialog.close(); locate(key, rack ?? currentRack().id); break;
+    case 'locate':
+      if (dialog.open) closeDialog().then(() => locate(key, rack ?? currentRack().id));
+      else locate(key, rack ?? currentRack().id);
+      break;
     case 'edit': editBottle(key); break;
     case 'remove': removeBottle(key); break;
-    case 'cancel-edit': if (currentRack().bottles[key]) showBottle(key); else dialog.close(); break;
-    case 'close': dialog.close(); break;
+    case 'cancel-edit': if (currentRack().bottles[key]) showBottle(key); else closeDialog(); break;
+    case 'close': closeDialog(); break;
     case 'camera':
     case 'library': $('#' + action, dialog).click(); break;
     case 'confirm-remove': {

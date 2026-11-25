@@ -8,10 +8,56 @@ const icons = {
 };
 
 const routes = [['cellar', 'My Cellar'], ['rack', 'Rack'], ['collection', 'Collection'], ['settings', 'Settings']];
-let selectionSheet;
+let selectionPopover;
 let selectedSource;
 let sequence = 0;
 const enhanced = new WeakMap();
+const motions = new WeakMap();
+const closing = new WeakMap();
+const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function playMotion(element, frames, duration) {
+  motions.get(element)?.cancel();
+  if (reducedMotion() || !element.animate) return null;
+  const animation = element.animate(frames, { duration, easing: 'cubic-bezier(.2,.8,.2,1)' });
+  motions.set(element, animation);
+  return animation;
+}
+
+export function animateDialog(dialog) {
+  const pending = closing.get(dialog);
+  if (pending) {
+    pending.cancelled = true;
+    closing.delete(dialog);
+  }
+  dialog.classList.remove('native-closing');
+  const popover = dialog.classList.contains('native-choice-popover');
+  const running = motions.get(dialog)?.playState === 'running';
+  const current = running ? getComputedStyle(dialog) : null;
+  playMotion(dialog, [
+    { opacity: current?.opacity ?? 0, transform: current?.transform ?? (popover ? 'translateY(-5px) scale(.98)' : 'translateY(32px)') },
+    { opacity: 1, transform: 'translateY(0) scale(1)' },
+  ], 220);
+}
+
+export function closeDialog(dialog) {
+  if (!dialog?.open) return Promise.resolve();
+  if (closing.has(dialog)) return closing.get(dialog).promise;
+  const state = { cancelled: false };
+  closing.set(dialog, state);
+  dialog.classList.add('native-closing');
+  const start = getComputedStyle(dialog);
+  const animation = playMotion(dialog, [
+    { opacity: start.opacity, transform: start.transform },
+    { opacity: 0, transform: dialog.classList.contains('native-choice-popover') ? 'translateY(-4px) scale(.98)' : 'translateY(26px)' },
+  ], 180);
+  state.promise = (animation?.finished.catch(() => {}) ?? Promise.resolve()).then(() => {
+    if (state.cancelled || closing.get(dialog) !== state) return;
+    closing.delete(dialog);
+    if (dialog.open) dialog.close();
+  });
+  return state.promise;
+}
 
 function fieldTitle(select) {
   if (select.dataset.nativeLabel) return select.dataset.nativeLabel;
@@ -65,7 +111,7 @@ function enhanceSelect(select) {
 
 export function openSelect(select) {
   if (select.disabled || !select.isConnected) return;
-  if (selectionSheet?.open) selectionSheet.close();
+  if (selectionPopover?.open) selectionPopover.close();
   enhanceSelect(select);
   const trigger = enhanced.get(select);
   if (!trigger) return;
@@ -73,18 +119,39 @@ export function openSelect(select) {
   const sourceName = select.name;
   const sourceForm = select.form;
   syncSelect(select);
-  const sheet = document.createElement('dialog');
+  const popover = document.createElement('dialog');
   const id = 'native-choice-' + ++sequence;
-  sheet.className = 'native-choice-sheet';
-  sheet.setAttribute('aria-labelledby', id);
-  sheet.innerHTML = '<div class="native-sheet-top"><h2 id="' + id + '"></h2>' +
-    '<button type="button" class="quiet native-sheet-close" aria-label="Close selection">' + icon('<path d="m7 7 10 10M17 7 7 17"/>') + '</button></div>' +
+  popover.className = 'native-choice-popover';
+  popover.setAttribute('aria-labelledby', id);
+  popover.innerHTML = '<div class="native-choice-top"><h2 id="' + id + '"></h2>' +
+    '<button type="button" class="quiet native-choice-close" aria-label="Close selection">' + icon('<path d="m7 7 10 10M17 7 7 17"/>') + '</button></div>' +
     '<label class="native-choice-search">Find an option<input type="search" autocomplete="off" placeholder="Search options"></label>' +
     '<div class="native-choice-options"></div><p class="native-choice-status" role="status"></p>';
-  sheet.querySelector('h2').textContent = fieldTitle(select);
-  const search = sheet.querySelector('input');
-  const list = sheet.querySelector('.native-choice-options');
-  const status = sheet.querySelector('.native-choice-status');
+  popover.querySelector('h2').textContent = fieldTitle(select);
+  const search = popover.querySelector('input');
+  const list = popover.querySelector('.native-choice-options');
+  const status = popover.querySelector('.native-choice-status');
+  popover.querySelector('.native-choice-search').hidden = select.options.length <= 8;
+  const viewport = window.visualViewport;
+  const positionPopover = () => {
+    if (!popover.open || !trigger.isConnected) return;
+    const bounds = trigger.getBoundingClientRect();
+    const leftEdge = (viewport?.offsetLeft ?? 0) + 8;
+    const topEdge = (viewport?.offsetTop ?? 0) + 8;
+    const rightEdge = leftEdge + (viewport?.width ?? innerWidth) - 16;
+    const bottomEdge = topEdge + (viewport?.height ?? innerHeight) - 16;
+    const width = Math.min(Math.max(bounds.width, 240), rightEdge - leftEdge);
+    const below = Math.max(0, bottomEdge - bounds.bottom - 6);
+    const above = Math.max(0, bounds.top - topEdge - 6);
+    const openBelow = below >= Math.min(240, above);
+    const available = Math.min(420, Math.max(80, openBelow ? below : above), bottomEdge - topEdge);
+    popover.style.width = width + 'px';
+    popover.style.maxHeight = available + 'px';
+    popover.style.left = Math.max(leftEdge, Math.min(bounds.left, rightEdge - width)) + 'px';
+    const height = popover.getBoundingClientRect().height;
+    popover.style.top = Math.max(topEdge, Math.min(openBelow ? bounds.bottom + 6 : bounds.top - height - 6, bottomEdge - height)) + 'px';
+    popover.style.transformOrigin = openBelow ? 'top left' : 'bottom left';
+  };
   const normalise = value => value.toLocaleLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
   const renderOptions = () => {
     const term = normalise(search.value.trim());
@@ -107,15 +174,25 @@ export function openSelect(select) {
         select.dispatchEvent(new Event('change', { bubbles: true }));
         syncSelect(select);
         window.grapletonNative?.selectionFeedback?.();
-        sheet.close();
+        closeDialog(popover);
       });
       list.append(button);
     }
     status.textContent = options.length ? '' : 'No matching options. Try another search.';
+    positionPopover();
   };
   search.addEventListener('input', renderOptions);
-  sheet.querySelector('.native-sheet-close').addEventListener('click', () => sheet.close());
-  sheet.addEventListener('keydown', event => {
+  popover.querySelector('.native-choice-close').addEventListener('click', () => closeDialog(popover));
+  popover.addEventListener('cancel', event => {
+    event.preventDefault();
+    closeDialog(popover);
+  });
+  popover.addEventListener('click', event => {
+    if (event.target !== popover) return;
+    const bounds = popover.getBoundingClientRect();
+    if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) closeDialog(popover);
+  });
+  popover.addEventListener('keydown', event => {
     if (!['ArrowDown', 'ArrowUp'].includes(event.key)) return;
     const options = [...list.querySelectorAll('button:not(:disabled)')];
     if (!options.length) return;
@@ -126,13 +203,16 @@ export function openSelect(select) {
       : (current + direction + options.length) % options.length;
     options[next].focus();
   });
-  sheet.addEventListener('close', () => {
+  popover.addEventListener('close', () => {
     trigger.setAttribute('aria-expanded', 'false');
-    if (selectionSheet === sheet) {
-      selectionSheet = undefined;
+    if (selectionPopover === popover) {
+      selectionPopover = undefined;
       selectedSource = undefined;
     }
-    sheet.remove();
+    window.removeEventListener('resize', positionPopover);
+    viewport?.removeEventListener('resize', positionPopover);
+    viewport?.removeEventListener('scroll', positionPopover);
+    popover.remove();
     requestAnimationFrame(() => {
       const replacement = sourceId ? document.getElementById(sourceId)
         : sourceForm?.isConnected && sourceName ? sourceForm.elements.namedItem(sourceName) : undefined;
@@ -140,13 +220,18 @@ export function openSelect(select) {
       target?.focus({ preventScroll: true });
     });
   }, { once: true });
-  document.body.append(sheet);
-  selectionSheet = sheet;
+  document.body.append(popover);
+  selectionPopover = popover;
   selectedSource = select;
   renderOptions();
   trigger.setAttribute('aria-expanded', 'true');
-  sheet.showModal();
-  sheet.querySelector('.native-sheet-close').focus();
+  popover.showModal();
+  positionPopover();
+  window.addEventListener('resize', positionPopover);
+  viewport?.addEventListener('resize', positionPopover);
+  viewport?.addEventListener('scroll', positionPopover);
+  animateDialog(popover);
+  popover.querySelector('.native-choice-close').focus({ preventScroll: true });
 }
 
 export function setupNativeUI() {
@@ -186,11 +271,38 @@ export function setupNativeUI() {
         node.querySelectorAll('select').forEach(enhanceSelect);
       }
     }
-    if (selectionSheet?.open && !selectedSource?.isConnected) selectionSheet.close();
+    if (selectionPopover?.open && !selectedSource?.isConnected) closeDialog(selectionPopover);
   });
   observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled', 'selected', 'label'] });
   document.querySelectorAll('select').forEach(enhanceSelect);
-  window.grapletonNativeUI = { renderNavigation, openSelect };
+  let pressedSlot;
+  const releaseSlot = () => {
+    if (!pressedSlot) return;
+    playMotion(pressedSlot, [{ transform: getComputedStyle(pressedSlot).transform }, { transform: 'scale(1)' }], 180);
+    pressedSlot = undefined;
+  };
+  document.addEventListener('pointerdown', event => {
+    releaseSlot();
+    const slot = event.target.closest('.slot');
+    if (slot && !slot.disabled) {
+      pressedSlot = slot;
+      playMotion(slot, [{ transform: 'scale(1)' }, { transform: 'scale(.94)' }], 90)?.effect.updateTiming({ fill: 'forwards' });
+    }
+  });
+  document.addEventListener('pointerup', releaseSlot);
+  document.addEventListener('pointercancel', releaseSlot);
+  window.addEventListener('blur', releaseSlot);
+  document.addEventListener('click', event => {
+    const slot = event.target.closest('.slot');
+    if (!slot) return;
+    document.querySelector('.slot.native-selected')?.classList.remove('native-selected');
+    slot.classList.add('native-selected');
+    playMotion(slot, [{ transform: 'scale(.96)' }, { transform: 'scale(1)' }], 200);
+  });
+  document.querySelector('#dialog')?.addEventListener('close', () => {
+    document.querySelector('.slot.native-selected')?.classList.remove('native-selected');
+  });
+  window.grapletonNativeUI = { renderNavigation, openSelect, animateDialog, closeDialog };
   renderNavigation(location.hash.slice(1) || 'cellar');
   return window.grapletonNativeUI;
 }

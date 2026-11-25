@@ -10,6 +10,7 @@ await cp('native/ui.css', 'dist-native/native-ui.css');
 const html = await readFile('index.html', 'utf8');
 await writeFile('dist-native/index.html', html
   .replace('<link rel="manifest" href="./manifest.webmanifest">', '')
+  .replace('viewport-fit=cover', 'viewport-fit=contain')
   .replace('<link rel="stylesheet" href="./calendar.css">', '<link rel="stylesheet" href="./calendar.css"><link rel="stylesheet" href="./native-ui.css">')
   .replace('Stored in this browser', 'Stored on this device'));
 await build({
