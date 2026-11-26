@@ -16,6 +16,8 @@ Only the Android bundle uses `viewport-fit=contain` and explicit Capacitor Syste
 
 Cold startup carries the existing purple identity through Android's launch surface, WebView and first HTML paint. The glass has a brief one-shot wine animation; the overlay reveals the rendered app when ready, without a fixed minimum delay. Reduced motion skips decorative movement. A loading watchdog offers Retry if the app bundle cannot finish opening. Android controls the system splash portion of the launch.
 
+The native splash hold has an eight-second escape. Normal readiness releases it before waiting for WebView animation frames, avoiding a pre-draw dependency cycle. The HTML glass matches the observed native 192 dp circle. The existing native inset owner also receives the ready cream background, and system-bar icon contrast is explicit for both day and night settings. Runtime coverage and rejected interim candidates are recorded in Android QA.
+
 Tap a saved bottle's photo in its details to open a separate full-screen viewer. Pinch, double-tap, drag, zoom buttons and Reset inspect the stored photo up to 5×; keyboard zoom and pan are available in the browser. Closing with the button, Escape or Android Back returns to the existing detail view. Zoom and pan are transient and do not modify the saved photo or cellar. Existing photos retain their stored resolution; magnification cannot recover missing image detail.
 
 ## Build

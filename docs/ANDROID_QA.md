@@ -1,62 +1,60 @@
 # Android candidate verification
 
-Independent QA reviewed the installed Android prototype on 25 November 2026. The Developer authored the product changes. The QA agent independently exercised the candidate and inspected its artifacts.
+Independent installed QA completed on 26 November 2026. Product implementation and design were reviewed separately by the Developer and Designer. This report records the QA agent's observations.
 
-**Verdict — APPROVE FOR HUMAN ACCEPTANCE**, scoped to the emulator and configurations below. Physical Android acceptance and owner-controlled production signing remain open.
+**Verdict — APPROVE FOR HUMAN ACCEPTANCE**, scoped to the emulator below. The cold-start continuity and photo viewer requirements pass. Physical-phone acceptance and owner-controlled production signing remain open.
 
 ## Final candidate
 
 | Item | Verified identity |
 | --- | --- |
-| Source | `eccc7a11d226b7742dbd20fd13bf5379c1cf7753` |
+| Source | `ac0a36dd74a91c0bad752223c47cd0a3150ffe10` |
 | Package | `com.langsystems.grapleton` |
-| Version | `0.3.0`, version code `3`, minimum API `24`, target/compile API `36` |
-| Debug APK SHA-256 | `1ed3824c53a97f5ef12c4daa4b988cdc5fb5faa9d9d7c6df3ce8321f6d8e8f69` |
-| Unsigned AAB SHA-256 | `3e22234db65030552a264ebefa2b30ad63dd1bafb591542cc22d9a9f7b737ca9` |
+| Installed version | `0.4.0`, version code `4`, minimum API `24`, target/compile API `36` |
+| Debug APK SHA-256 | `5a83450945f87831a857178e2f7e1e25d470ae0564b3f7c8bae785dace23b86f` |
+| Unsigned AAB SHA-256 | `5143f73e1fc1ba60d815c5ed78d28f72c209140140cc026585dc62ccd545aeb0` |
 | Development signer SHA-256 | `4e303ec8c6ac8d66c21b917fd9798692bf85ae5458cdab89a9ce97b37d0e8579` |
 
-The final APK signature verifies. ZIP alignment passes `zipalign -c -P 16 -v 4`. All eight JNI libraries match between APK and AAB, and all ELF LOAD segments have 16 KB alignment. The AAB is unsigned. Final Gradle build and lint completed with zero errors and eleven warnings.
+QA independently hashed the APK/AAB, read the installed package/version, verified the APK signature and certificate, and passed `zipalign -c -P 16 4`. The Developer reported successful final Gradle assembly, bundle and lint, with zero errors and eleven warnings. The AAB is unsigned; no Play upload or production signing occurred.
 
-## Runtime and upgrade
+## Runtime and exact upgrade
 
-Tests used the Ripper_Tipper_S23 AVD, Android 16/API 36, x86_64 Google APIs image, 1080 × 2400 physical resolution, density 420, and **System WebView 133.0.6943.137**. A 840 × 1800 resolution override supplied the 320 CSS-pixel configuration. Playwright operated the installed WebView. ADB and UI Automator operated Android and measured native bounds.
+Tests used the Ripper_Tipper_S23 AVD, Android 16/API 36, x86_64 Google APIs image, 1080 × 2400 physical resolution, density 420, gesture navigation, and **System WebView 133.0.6943.137**. Playwright operated the installed WebView, its Android driver injected native gestures, and ADB/UI Automator measured or operated Android. System day/night tests changed Android's actual UI mode.
 
-The exact OneDrive `Apps/Grapleton-0.1.0-test.apk` baseline was Android 0.2.0/code 2, SHA-256 `b9589c5ad1a436ddd97a7bbb71d3d62b247bacbe88e8ab28fd3e778d1f5ac823`. Installing code 3 with `adb install -r` preserved the package and signer. A snapshot comparison retained both original racks, all five bottles, every field, and every photo Blob's SHA-256. Subsequent synthetic rack and long-name fixtures were confined to the QA rack.
+The exact existing OneDrive `Apps/Grapleton-0.1.0-test.apk` baseline was Android 0.3.0/code 3, SHA-256 `1ed3824c53a97f5ef12c4daa4b988cdc5fb5faa9d9d7c6df3ce8321f6d8e8f69`. A read-only IndexedDB snapshot recorded three racks, six bottles, every field and revision, and each of three photo Blobs' SHA-256, MIME type and size. The final check reinstalled that baseline with `adb install -r -d`, then installed the final code 4 APK with `adb install -r`, without uninstalling. The complete snapshot compared equal after upgrading, after viewer use, and again after the optional tooling attempt and app restoration. Package and signer remain unchanged.
 
-## Installed rack and system-bar matrix
+## Cold startup and system bars
 
-| Configuration | Rack coverage | Smallest observed slot | Actual WebView bounds in device pixels |
-| --- | --- | --- | --- |
-| 412 portrait, gesture navigation | Entire 3 × 6 and 3 × 8 racks | 48.15 × 166.23 CSS px for 8 columns | `[0,136]–[1080,2337]` |
-| 320 portrait, gesture navigation | Entire 3 × 6 rack | 49.83 × 94.23 CSS px | `[0,102]–[840,1737]` |
-| 412 portrait, gesture navigation | 12 × 12 and 26 × 24 racks use sections | 48.15 × 48.07 CSS px | `[0,136]–[1080,2337]` |
-| 863 × 360 landscape, gesture navigation | Paged maximum rack | 50.76 × 52.10 CSS px | `[136,74]–[2400,1017]` |
-| 412 portrait, three-button navigation | Paged maximum rack | 48.15 × 51.46 CSS px | `[0,136]–[1080,2274]` |
-| 320 portrait, three-button navigation | Paged maximum rack | 49.83 × 51.92 CSS px | `[0,102]–[840,1674]` |
-| 815 × 384 landscape, three-button navigation | Paged maximum rack | 51.15 × 64.10 CSS px | `[136,74]–[2274,1080]` |
+Two actual Android screen recordings cover force-stop, launcher, native splash, HTML startup and the ready app in day and night modes. QA independently inspected contact sheets decoded from the actual H.264 recordings with PyAV. The final sequence retains the purple glass artwork through the handoff, shows wine movement and reveals the cream app. No blank logo phase, full white flash or conspicuous logo-size jump was observed in these decoded frames. Native startup and HTML artwork sizes match in the final sequence. These are AVD recordings with variable frame timing; they do not establish physical-phone startup latency or guarantee visibility of every sub-frame event.
 
-These rack states had no page-wide or rack horizontal scrolling and no unnecessary body vertical scroll. Slot bounds stayed between the app bars. Actual WebView rectangles were compared with Android's status-bar, navigation-bar and display-cutout InsetsSource rectangles. CSS header, brand and bottom-navigation bounds were projected into the same native coordinate space, allowing two physical pixels for fractional rounding. This establishes system-bar clearance through native bounds as well as rendered geometry. The landscape Collection header remained at CSS y=0 after scrolling roughly 393 CSS pixels.
+Earlier candidates were rejected after temporal inspection revealed a blank purple phase, logo displacement, cream edge strips and unreadable or incorrect settled system bars. A controlled experiment isolated the persistent purple bars: `Startup.ready()` restored cream, but a subsequent Capacitor `SystemBars.setStyle({style:'LIGHT'})` reapplied the purple theme window background. The final Activity theme overlay corrects that underlying background ownership.
 
-The compact home removed duplicate bottle cards. A final four-pixel padding adjustment removed the measured two-pixel rounding tail. The final APK was installed in place and retested with three racks and a 60-character rack name. Viewport, client and scroll heights were all 839 CSS pixels, with viewport and content widths both 412. Adding a bottle directly to Z24 in the maximum rack revealed and focused the last section. Previous/next section controls worked. Moving that bottle to A1 revealed and focused the first section. Global search revealed the correct section. Tapping, closing, saving and resizing preserved the selected position.
+On the final APK in actual Android night mode, top and bottom native backing pixels were `[250,246,241]` before and after both calls. Night/day window flags show dark status icons; screenshots confirm readable icons against cream. Same-process warm resume did not replay startup and retained correct bars. The final night cold recording ends with cream bars and dark icons. The final day recording and settled screenshot agree.
 
-## Anchored choices, keyboard and motion
+Evidence: `startup-0.4-approved-day.mp4`, `startup-0.4-approved-night.mp4`, their `.decoded-contact.png` and `.decoded.json` files, `native-bar-approved.json`, `bar-approved-systembars-light.png`, and `startup-final-{day,night}-ready.png`. Earlier browser-seek contact sheets were discarded because they repeated stale decoded frames; only the PyAV-decoded records support the cold-start verdict.
 
-Short choices opened beside their source field. The observed style dropdown began six CSS pixels below its field. Long choices supplied search, empty results, selection, outside/Back dismissal and focus restoration while the bottle editor remained open.
+## Fullscreen photo interaction
 
-Two landscape keyboard defects were reproduced and corrected. Initially Rack results fell below the 122-pixel usable viewport, and the choice option list had zero height. On the final flow, the actual keyboard reduced the WebView to `[136,74]–[2400,394]`, or about 863 × 122 CSS pixels. Rack search occupied 44 pixels, the results region about 56 pixels, and each compact result 48 pixels. The choice popup retained one fully visible 48-pixel option. Selecting Riesling through the real keyboard layout updated the parent field. Selecting a Rack result dismissed the keyboard, restored normal navigation, and restored focus to its highlighted slot after the responsive grid replacement.
+The installed viewer was exercised on the initial 0.4 functional candidate, and its unchanged implementation received final-APK zoom/Back/focus and data-continuity smoke checks. Coverage included:
 
-The final candidate also handled a 120-character wine name and 60-character rack name in a fully visible 48-pixel result through ellipsis. The full values remained in saved data.
+- Opening the stored bottle photo from its detail dialog, fitting the image and resetting zoom.
+- Actual Android two-finger pinch-open from scale 1 to 5, followed by a real swipe that changed both pan coordinates.
+- An interior two-touch closing gesture delivered through trusted CDP touch events, reducing scale 5 to approximately 1.67. The native driver's full-width closing gesture intersected the OS edge strip, so that attempt is not counted as a successful viewer gesture.
+- Actual double-tap zoom to 2.5, button zoom, and reset.
+- Portrait-to-landscape rotation. The measured native WebView rectangle was `[136,74]–[2400,1017]`; close, zoom and reset controls stayed inside the usable viewport, with targets at least 48 CSS pixels high and wide. Photo movement remained constrained within the viewer.
+- Android Back closing only the photo viewer, retaining the underlying bottle detail and restoring focus to its Enlarge bottle photo trigger.
+- Installed WebView reduced-motion emulation yielding zero viewer animations and a zero-second zoom transition.
 
-Installed dialog motion was sampled over 250 milliseconds. Opacity and transform changed across eleven frames. Four interrupted close/reopen cycles remained coherent. Emulated `prefers-reduced-motion: reduce` in the installed WebView produced zero dialog animations and immediate close. The ordinary anchored geometry, matrix and temporal checks ran on the initial 0.3.0 functional candidate. Proportional final regressions covered compact home, far-position commits, real landscape keyboard selection, long text, focus retention and installer data continuity. The last padding-only revision received an in-place installation and populated home-fit check.
+Final candidate smoke reopened a saved photo, zoomed to 150%, closed with Android Back, checked retained detail/focus, and proved the full saved record and photo hashes unchanged. Evidence: `native-photo-viewer.json`, `viewer-fitted-portrait.png`, `viewer-native-pinch-pan.png`, `viewer-landscape.png`, `viewer-final-photo.png`, and `native-0.4-final.json`.
 
-## Evidence and limits
+## Scope and remaining acceptance
 
-Core revision `6a5cde2` was read before testing. The projected-workspace lesson was applied through actual slot-edge and target-size measurements. The native-interaction lesson was applied through installed paging, selection, Back and interruption flows. Temporal evidence supplemented screenshots for animation. Upgrade identity and data continuity were verified against the existing distributable APK.
+Core QA standards and retrospective revision `6a5cde2` were read. The temporal-evidence lesson caught defects invisible in a settled screenshot. The native-interaction lesson was applied through actual multitouch, swipe, rotation, Android Back, real system themes and native pixel/window observations. Upgrade verification used the existing distributable and exact stored photo hashes.
 
-The native configuration uses SystemBars native inset handling, a contain viewport, and an initial contain hint. Capacitor's source includes a separate WebView 140+ passthrough branch when a page requests cover. That source was inspected. Runtime evidence here covers WebView 133 and the bundled contain viewport. Newer WebView versions, minimum-supported Android devices, OEM variations and a physical 16 KB device were not exercised.
+This increment did not repeat every unchanged camera, backup, rack, keyboard or offline integration. Those had installed coverage in the preceding 0.3 report, including 320/412 portrait, landscape, gesture/three-button bars, maximum rack paging and real landscape keyboard use. The 0.4 final checks above are explicitly narrower. Viewer interaction checks run on the initial functional candidate are carried forward because later fixes changed startup/theme ownership, with final viewer smoke on the artifact identified here.
 
-Physical-phone camera, haptics, TalkBack, gesture navigation, keyboard variations and a production-signed upgrade remain acceptance steps. Previous Android reports established native camera/picker, backup and process-recovery behavior. This polish pass did not repeat every unchanged integration. No Play upload or production signing was performed.
+An optional native startup reduced-motion/failure-injection helper did not complete within the bounded attempt. It is **not a native watchdog/Retry pass** and does not establish reduced-motion cold-start behavior. Source/fixture review is separate from this installed evidence. The helper was canceled, Android was cold-launched normally, and the final app-ready check and exact data snapshot passed afterward.
 
-Local evidence resides in `C:/Users/langa/Documents/ChatGPT/Grapleton/QA-Grapleton/`. Final screenshots include `polish-last-home.png`, `polish-last-rack.png`, `polish-last-landscape-ime.png` and `polish-last-landscape-selected.png`. Matrix measurements are in `native-polish-bounds.json`, temporal samples in `native-polish-interactions.json`, and final keyboard/focus measurements in `native-polish-last.json`.
+Physical-device pinch feel, startup timing, OEM bars, minimum-supported Android, newer WebViews, TalkBack, photo-camera hardware and production-signed upgrades remain human acceptance work. Runtime evidence covers WebView 133; the separate newer-WebView source branch was not exercised. No production-release authority is implied by this emulator verdict.
 
-The emulator was returned to its physical resolution, portrait rotation, gesture navigation, and enabled Wi-Fi/mobile data.
+Local evidence directory: `C:/Users/langa/Documents/ChatGPT/Grapleton/QA-Grapleton/`. Final ready screenshot: `android-0.4-ready-final.png`. The emulator was returned to physical resolution, portrait rotation, gesture navigation, Android day mode and enabled Wi-Fi/mobile data. No product changes were made by QA.

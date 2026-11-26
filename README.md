@@ -24,3 +24,5 @@ The private architecture and commercial handoff are maintained in the separate G
 ## Android candidate
 
 The Capacitor Android shell packages the existing interface for offline use and connects the photo buttons to the native camera and photo picker. See [Android delivery](docs/ANDROID_DELIVERY.md) for build steps, the proposed application ID, signing, data boundaries and Play submission work. Browser and Android collections are stored separately. Native updates are delivered through Google Play.
+
+Test candidate **0.4.0 / build 4** adds continuous purple startup with wine motion and a full-screen bottle photo viewer with zoom and pan. See [installed Android QA](docs/ANDROID_QA.md) for the exact artifact, upgrade-data checks and human acceptance scope.
