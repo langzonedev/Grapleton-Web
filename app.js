@@ -1,4 +1,5 @@
 import { readCellar, saveCellar, readCameraDraft, saveCameraDraft } from './store.js';
+import { openPhotoViewer } from './photo-viewer.js';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const view = $('#view');
@@ -475,8 +476,11 @@ function showBottle(key) {
   ].filter(([, value]) => value);
   const lookup = new URL('https://www.google.com/search');
   lookup.searchParams.set('q', [bottle.name, bottle.vintage, 'wine'].filter(Boolean).join(' '));
-  openDialog(bottle.name, '<div class="detail-top"><div class="detail-art ' + styles[bottle.style] + '">' +
-    photoMarkup(bottle) + '</div><div><span class="position">' + escape(rack.name) + ' · Slot ' + slotName(key) + '</span><p>' +
+  const art = bottle.photo ? '<button type="button" class="detail-art photo-enlarge ' + styles[bottle.style] +
+    '" data-action="enlarge-photo" data-key="' + key + '" aria-label="Enlarge bottle photo">' + photoMarkup(bottle) +
+    '<span class="photo-enlarge-hint" aria-hidden="true">Tap to enlarge ⤢</span></button>' :
+    '<div class="detail-art ' + styles[bottle.style] + '">' + photoMarkup(bottle) + '</div>';
+  openDialog(bottle.name, '<div class="detail-top">' + art + '<div><span class="position">' + escape(rack.name) + ' · Slot ' + slotName(key) + '</span><p>' +
     escape([bottle.vintage, bottle.variety || bottle.style].filter(Boolean).join(' · ')) + '</p>' +
     (bottle.drinkBy ? '<p>Drink by <strong>' + escape(displayDate(bottle.drinkBy)) + '</strong></p>' : '') +
     '<a href="' + escape(lookup.href) + '" rel="noopener noreferrer" target="_blank">Look up wine ↗</a></div></div>' +
@@ -819,6 +823,11 @@ document.addEventListener('click', event => {
       if (dialog.open) closeDialog().then(() => locate(key, rack ?? currentRack().id));
       else locate(key, rack ?? currentRack().id);
       break;
+    case 'enlarge-photo': {
+      const bottle = currentRack().bottles[key];
+      if (bottle?.photo) openPhotoViewer(bottle.photo, bottle.name, control);
+      break;
+    }
     case 'edit': editBottle(key); break;
     case 'remove': removeBottle(key); break;
     case 'cancel-edit': if (currentRack().bottles[key]) showBottle(key); else closeDialog(); break;

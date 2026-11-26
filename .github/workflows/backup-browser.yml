@@ -20,3 +20,4 @@ jobs:
           python3 -m http.server 8000 > /tmp/grapleton-http.log 2>&1 &
           for i in {1..20}; do curl -fsS http://127.0.0.1:8000/ >/dev/null && break; sleep 1; done
           node tests/backup-browser.mjs
+          node tests/photo-viewer-browser.mjs

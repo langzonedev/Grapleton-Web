@@ -1,14 +1,19 @@
 import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { build } from 'esbuild';
 import sharp from 'sharp';
+import { startupMarkup, startupBootstrap } from '../native/startup.js';
 
 await mkdir('dist-native', { recursive: true });
 await cp('assets', 'dist-native/assets', { recursive: true });
-for (const file of ['style.css', 'calendar.css', 'calendar.js']) await cp(file, 'dist-native/' + file);
+for (const file of ['style.css', 'calendar.css', 'calendar.js', 'photo-viewer.css']) await cp(file, 'dist-native/' + file);
 await cp('privacy.html', 'dist-native/privacy.html');
 await cp('native/ui.css', 'dist-native/native-ui.css');
 const html = await readFile('index.html', 'utf8');
+const startupCSS = await readFile('native/startup.css', 'utf8');
 await writeFile('dist-native/index.html', html
+  .replace('<html lang="en-AU">', '<html lang="en-AU" class="native-starting">')
+  .replace('<meta charset="utf-8">', '<meta charset="utf-8"><style>' + startupCSS + '</style>')
+  .replace('<body>', '<body>' + startupMarkup + '<script>' + startupBootstrap + '</script>')
   .replace('<link rel="manifest" href="./manifest.webmanifest">', '')
   .replace('viewport-fit=cover', 'viewport-fit=contain')
   .replace('<link rel="stylesheet" href="./calendar.css">', '<link rel="stylesheet" href="./calendar.css"><link rel="stylesheet" href="./native-ui.css">')

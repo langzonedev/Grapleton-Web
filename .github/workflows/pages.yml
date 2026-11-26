@@ -20,10 +20,10 @@ jobs:
           persist-credentials: false
       - name: Check and stage the static app
         run: |
-          for script in app.js calendar.js store.js sw.js; do node --check "$script" || exit; done
+          for script in app.js calendar.js store.js sw.js photo-viewer.js; do node --check "$script" || exit; done
           mkdir _site
-          cp -r index.html privacy.html style.css calendar.css app.js calendar.js store.js sw.js manifest.webmanifest assets _site/
-          sed -i "s/grapleton-shell-v5/grapleton-shell-${GITHUB_SHA}/" _site/sw.js
+          cp -r index.html privacy.html style.css calendar.css photo-viewer.css photo-viewer.js app.js calendar.js store.js sw.js manifest.webmanifest assets _site/
+          sed -i "s/grapleton-shell-v6/grapleton-shell-${GITHUB_SHA}/" _site/sw.js
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa
         with:
           path: _site

@@ -1,10 +1,10 @@
 # Grapleton Android delivery
 
-Updated 25 November 2026. The Android shell uses Capacitor 8 with Grapleton's local IndexedDB data model. It has a dedicated app layout with persistent My Cellar, Rack, Collection and Settings navigation, wine-related icons, field-anchored dropdowns and selection haptics. Native camera, system photo selection, sharing and Android Back handling are included. Privacy is accessible from Settings. Packaged assets allow offline use. Android releases arrive through Google Play, while the browser app retains its service-worker update control.
+Updated 26 November 2026. The Android shell uses Capacitor 8 with Grapleton's local IndexedDB data model. It has a dedicated app layout with persistent My Cellar, Rack, Collection and Settings navigation, wine-related icons, field-anchored dropdowns and selection haptics. Native camera, system photo selection, sharing and Android Back handling are included. Privacy is accessible from Settings. Packaged assets allow offline use. Android releases arrive through Google Play, while the browser app retains its service-worker update control.
 
 ## Identity and versions
 
-The proposed application ID is `com.langsystems.grapleton`, version name `0.3.0`, version code `3`. This test update retains the package and workstation signing identity of the earlier test candidates. Confirm this ID with the account owner before the first Play upload. After publication the application ID and signing identity must stay stable. Increase version code for every subsequent Play artifact. The build targets API 36 and supports API 24 upwards, subject to device WebView compatibility.
+The proposed application ID is `com.langsystems.grapleton`, version name `0.4.0`, version code `4`. This test update retains the package and workstation signing identity of the earlier test candidates. Confirm this ID with the account owner before the first Play upload. After publication the application ID and signing identity must stay stable. Increase version code for every subsequent Play artifact. The build targets API 36 and supports API 24 upwards, subject to device WebView compatibility.
 
 ## Interaction and layout
 
@@ -13,6 +13,10 @@ The native Rack screen allocates its remaining viewport to the rack grid. It kee
 Dropdowns open beside their source field and clamp to the visible viewport. Long lists scroll inside the dropdown and offer search. Bottle details and forms open with 220 ms transform/opacity transitions and close in 180 ms. Press feedback is immediate, animation interruption keeps the latest state, and reduced-motion mode preserves all actions. Data writes complete before the closing transition.
 
 Only the Android bundle uses `viewport-fit=contain` and explicit Capacitor SystemBars native inset handling. Native window padding reserves system bars, display cutouts and the keyboard. The PWA retains its existing viewport configuration. These choices apply the Core workspace and progressive-detail lessons recorded in `LS-RET-2026-08-27-01`, `LS-RET-2026-08-27-02` and `LS-RET-2026-08-28-01`. Installed bounds and interaction evidence are recorded in [Android QA](ANDROID_QA.md).
+
+Cold startup carries the existing purple identity through Android's launch surface, WebView and first HTML paint. The glass has a brief one-shot wine animation; the overlay reveals the rendered app when ready, without a fixed minimum delay. Reduced motion skips decorative movement. A loading watchdog offers Retry if the app bundle cannot finish opening. Android controls the system splash portion of the launch.
+
+Tap a saved bottle's photo in its details to open a separate full-screen viewer. Pinch, double-tap, drag, zoom buttons and Reset inspect the stored photo up to 5×; keyboard zoom and pan are available in the browser. Closing with the button, Escape or Android Back returns to the existing detail view. Zoom and pan are transient and do not modify the saved photo or cellar. Existing photos retain their stored resolution; magnification cannot recover missing image detail.
 
 ## Build
 

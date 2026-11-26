@@ -6,7 +6,7 @@ Grapleton maps your wine collection to your physical rack. It starts with an emp
 
 1. Choose **Edit rack** to name and size the first rack. Use **Add rack** for other locations, then switch between them with the rack picker.
 2. Tap a slot or **Add bottle**. Enter the wine’s name and vintage, choose its grape variety, and use **Take photo** or **Choose photo** to attach a label photo.
-3. Tap an occupied slot for its photo and essential details. Open **Purchase, pairings & notes** for the rest, or choose **Look up wine** to search the web.
+3. Tap an occupied slot for its photo and essential details. Tap the photo to enlarge it, then pinch or double-tap to zoom and drag to inspect the label. Zoom buttons and Reset are also available. Open **Purchase, pairings & notes** for the rest, or choose **Look up wine** to search the web.
 4. Enter a name, vintage, grape variety, style, rack name, or position under **Find a bottle**. For example, search **2010 Shiraz** and select the match to open its rack and highlight its slot.
 
 ## Storage and installation
