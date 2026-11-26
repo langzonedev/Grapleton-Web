@@ -33,6 +33,12 @@ export async function finishStartup(releaseSplash, restoreWindow) {
   if (!overlay) return;
   clearTimeout(window.grapletonStartup?.timer);
   document.querySelector('.startup-recovery').hidden = true;
+  // Release pre-draw gating before waiting for WebView animation frames.
+  try {
+    await releaseSplash?.();
+  } catch (error) {
+    console.warn('Could not finish the native splash handoff', error);
+  }
   const artwork = new Image();
   artwork.src = './assets/grapleton-v4-512.png';
   await artwork.decode().catch(() => {});
@@ -43,11 +49,6 @@ export async function finishStartup(releaseSplash, restoreWindow) {
   Object.assign(glass.style, { position: 'fixed', left: bounds.left + 'px', top: bounds.top + 'px',
     width: bounds.width + 'px', height: bounds.height + 'px' });
   overlay.classList.add('startup-revealing');
-  try {
-    await releaseSplash?.();
-  } catch (error) {
-    console.warn('Could not finish the native splash handoff', error);
-  }
   // Reveal the already-rendered app underneath the purple surface before fading it.
   document.documentElement.classList.remove('native-starting');
   await new Promise(resolve => requestAnimationFrame(resolve));

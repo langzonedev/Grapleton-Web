@@ -24,6 +24,7 @@ public class StartupPlugin extends Plugin {
         getActivity().runOnUiThread(() -> {
             int background = Color.parseColor("#faf6f1");
             getActivity().getWindow().setBackgroundDrawable(new ColorDrawable(background));
+            getActivity().getWindow().getDecorView().setBackgroundColor(background);
             getBridge().getWebView().setBackgroundColor(background);
             EdgeToEdge.enable(getActivity(), SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
                 SystemBarStyle.light(Color.TRANSPARENT, Color.parseColor("#351d28")));
