@@ -30,4 +30,7 @@
         <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
         <item name="android:windowLightStatusBar">false</item>
     </style>
+    <style name="GrapletonReadySurface">
+        <item name="android:windowBackground">#faf6f1</item>
+    </style>
 </resources>

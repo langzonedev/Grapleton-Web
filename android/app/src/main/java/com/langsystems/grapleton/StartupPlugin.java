@@ -22,6 +22,8 @@ public class StartupPlugin extends Plugin {
     @PluginMethod
     public void ready(PluginCall call) {
         getActivity().runOnUiThread(() -> {
+            // SystemBars also reads this Activity theme when repainting native inset padding.
+            getActivity().getTheme().applyStyle(R.style.GrapletonReadySurface, true);
             int background = Color.parseColor("#faf6f1");
             getActivity().getWindow().setBackgroundDrawable(new ColorDrawable(background));
             getActivity().getWindow().getDecorView().setBackgroundColor(background);
