@@ -3,14 +3,34 @@ import assert from 'node:assert/strict';
 
 const base = process.env.TEST_URL || 'http://127.0.0.1:8000/';
 const browser = await chromium.launch({ channel: process.env.TEST_BROWSER_CHANNEL || undefined });
+async function waitForOfflineShell(page) {
+  await page.locator('#app-update').waitFor({ state: 'visible' });
+  await page.evaluate(async () => {
+    await Promise.race([
+      (async () => {
+        await navigator.serviceWorker.ready;
+        if (!navigator.serviceWorker.controller) await new Promise(resolve => navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true }));
+      })(),
+      new Promise((_, reject) => setTimeout(async () => {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        reject(new Error('Offline shell did not become ready: ' + JSON.stringify(registrations.map(registration => ({
+          active: registration.active?.state, installing: registration.installing?.state, waiting: registration.waiting?.state,
+        })))));
+      }, 10000)),
+    ]);
+  });
+}
 try {
   for (const viewport of [{ width: 320, height: 700 }, { width: 412, height: 860 }, { width: 863, height: 347 }, { width: 1280, height: 900 }]) {
     const context = await browser.newContext({ viewport, hasTouch: true });
     const page = await context.newPage();
+    page.setDefaultTimeout(10000);
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(base + '#rack');
     await page.locator('.slot').first().waitFor();
+    // Let the first install complete before the seed reload interrupts this document.
+    await waitForOfflineShell(page);
     await page.evaluate(async () => {
       const { readCellar, saveCellar } = await import('./store.js');
       const current = await readCellar();
@@ -73,10 +93,7 @@ try {
     await detail.getByRole('button', { name: 'Close', exact: true }).click();
     await page.locator('.slot[data-key="1:2"]').click();
     assert.equal(await detail.locator('.photo-enlarge').count(), 0, 'Placeholder artwork does not offer photo zoom');
-    await page.evaluate(async () => {
-      await navigator.serviceWorker.ready;
-      if (!navigator.serviceWorker.controller) await new Promise(resolve => navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true }));
-    });
+    await waitForOfflineShell(page);
     await context.setOffline(true);
     await page.reload();
     await page.locator('.slot[data-key="1:1"]').click();
