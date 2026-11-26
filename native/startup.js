@@ -20,6 +20,7 @@ export const startupMarkup = `<div id="native-startup" role="status" aria-label=
 // The watchdog remains independent of the module bundle and its dependencies.
 export const startupBootstrap = `(() => {
   const fail = () => {
+    document.querySelector('.startup-glass')?.removeAttribute('style');
     const recovery = document.querySelector('.startup-recovery');
     if (recovery) recovery.hidden = false;
   };
@@ -27,33 +28,50 @@ export const startupBootstrap = `(() => {
   document.getElementById('startup-retry').addEventListener('click', () => location.reload());
 })();`;
 
-export async function finishStartup(restoreWindow) {
+export async function finishStartup(releaseSplash, restoreWindow) {
   const overlay = document.getElementById('native-startup');
   if (!overlay) return;
   clearTimeout(window.grapletonStartup?.timer);
   document.querySelector('.startup-recovery').hidden = true;
+  const artwork = new Image();
+  artwork.src = './assets/grapleton-v4-512.png';
+  await artwork.decode().catch(() => {});
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  // Keep the glass still if native insets change while the ready app is revealed.
+  const glass = overlay.querySelector('.startup-glass');
+  const bounds = glass.getBoundingClientRect();
+  Object.assign(glass.style, { position: 'fixed', left: bounds.left + 'px', top: bounds.top + 'px',
+    width: bounds.width + 'px', height: bounds.height + 'px' });
+  overlay.classList.add('startup-revealing');
+  try {
+    await releaseSplash?.();
+  } catch (error) {
+    console.warn('Could not finish the native splash handoff', error);
+  }
   // Reveal the already-rendered app underneath the purple surface before fading it.
   document.documentElement.classList.remove('native-starting');
   await new Promise(resolve => requestAnimationFrame(resolve));
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches || !overlay.animate) {
+    overlay.remove();
+  } else {
+    const transition = overlay.animate([{ opacity: 1 }, { opacity: 0 }], {
+      duration: 260,
+      easing: 'cubic-bezier(.2,.7,.3,1)',
+      fill: 'forwards',
+    });
+    // Cleanup also runs if the browser interrupts the animation.
+    const cleanup = setTimeout(() => overlay.remove(), 320);
+    await transition.finished.catch(() => {});
+    clearTimeout(cleanup);
+    overlay.remove();
+  }
+  // Native backing stays purple until a cream app frame is already on screen.
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   try {
     await restoreWindow?.();
   } catch (error) {
     console.warn('Could not restore the app window background', error);
   }
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches || !overlay.animate) {
-    overlay.remove();
-    return;
-  }
-  const transition = overlay.animate([{ opacity: 1 }, { opacity: 0 }], {
-    duration: 260,
-    easing: 'cubic-bezier(.2,.7,.3,1)',
-    fill: 'forwards',
-  });
-  // Cleanup also runs if the browser interrupts the animation.
-  const cleanup = setTimeout(() => overlay.remove(), 320);
-  await transition.finished.catch(() => {});
-  clearTimeout(cleanup);
-  overlay.remove();
 }
 
 export function failStartup(error) {

@@ -4,6 +4,7 @@
   "webDir": "dist-native",
   "plugins": {
     "SystemBars": {
+      "style": "DARK",
       "insetsHandling": "native",
       "initialViewportFitValueHint": "contain"
     }

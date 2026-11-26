@@ -1,4 +1,4 @@
-import { Capacitor, registerPlugin } from '@capacitor/core';
+import { Capacitor, registerPlugin, SystemBars, SystemBarsStyle } from '@capacitor/core';
 import { Camera, CameraSource, CameraResultType } from '@capacitor/camera';
 import { App } from '@capacitor/app';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
@@ -68,7 +68,11 @@ try {
   if (!location.hash) history.replaceState(null, '', '#cellar');
   setupNativeUI();
   await import('../app.js');
-  await finishStartup(() => registerPlugin('Startup').ready());
+  const startup = registerPlugin('Startup');
+  await finishStartup(() => startup.painted(), async () => {
+    await startup.ready();
+    await SystemBars.setStyle({ style: SystemBarsStyle.Light });
+  });
 } catch (error) {
   failStartup(error);
 }
