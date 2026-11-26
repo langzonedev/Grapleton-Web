@@ -17,7 +17,7 @@ Each rack can have up to 26 rows by 24 columns. It has no account or sync. Use S
 
 ## Development
 
-Serve the repository with any static HTTP server and open it on localhost. JavaScript modules and the service worker require HTTP or HTTPS. GitHub Actions publishes an explicit list of public app files to GitHub Pages on pushes to `main`. The deployed service worker uses a cache version derived from the release commit. Use **Check for updates** in the footer. If a release is already waiting, the button says **Update app**. Applying an update reloads Grapleton and keeps the saved cellar in IndexedDB. If you are upgrading from a version without this button, close all Grapleton tabs and reopen once.
+Serve the repository with any static HTTP server and open it on localhost. JavaScript modules and the service worker require HTTP or HTTPS. GitHub Actions publishes an explicit list of public app files to GitHub Pages on pushes to `main`. The deployed service worker uses a cache version derived from the release commit. Grapleton automatically checks for releases on opening, returning to the app, reconnecting, and periodically while visible. The footer displays **Update app** only when an update is ready. Applying an update reloads Grapleton and keeps the saved cellar in IndexedDB. If you are upgrading from a version without this button, close all Grapleton tabs and reopen once.
 
 The private architecture and commercial handoff are maintained in the separate Grapleton repository.
 

@@ -868,29 +868,37 @@ document.addEventListener('keydown', event => {
 async function setupAppUpdates() {
   const workers = navigator.serviceWorker;
   const registration = await workers.register('./sw.js', { updateViaCache: 'none' });
+  const panel = $('#app-update');
   const button = $('#update-button');
   const status = $('#update-status');
   let controller = workers.controller;
   let reloadAvailable = false;
   let applying = false;
   let activationTimeout;
-
-  function showAvailable() {
-    button.textContent = reloadAvailable || registration.waiting ? 'Update app' : 'Check for updates';
+  let checking = false;
+  let lastCheck = 0;
+  const available = () => reloadAvailable || Boolean(registration.waiting && workers.controller);
+  function showAvailable(message = 'A new version of Grapleton is available.') {
+    panel.hidden = !available();
+    if (!panel.hidden) status.textContent = message;
   }
-
-  function waitForInstall(worker) {
-    return new Promise(resolve => {
-      function checkState() {
-        if (!['installed', 'activating', 'activated', 'redundant'].includes(worker.state)) return;
-        worker.removeEventListener('statechange', checkState);
-        resolve(worker.state);
-      }
-      worker.addEventListener('statechange', checkState);
-      checkState();
-    });
+  function watchInstall() {
+    const worker = registration.installing;
+    if (!worker) return;
+    const changed = () => {
+      if (worker.state === 'installed') showAvailable();
+      if (['installed', 'activated', 'redundant'].includes(worker.state)) worker.removeEventListener('statechange', changed);
+    };
+    worker.addEventListener('statechange', changed);
+    changed();
   }
-
+  async function checkForUpdate(force = false) {
+    if (checking || applying || !navigator.onLine || (!force && Date.now() - lastCheck < 60000)) return;
+    checking = true;
+    lastCheck = Date.now();
+    try { await registration.update(); } catch { /* Offline or temporary network failure: keep current version. */ }
+    finally { checking = false; if (!applying) showAvailable(); }
+  }
   workers.addEventListener('controllerchange', () => {
     const previous = controller;
     controller = workers.controller;
@@ -903,61 +911,39 @@ async function setupAppUpdates() {
     }
     applying = false;
     button.disabled = false;
-    showAvailable();
-    status.textContent = 'An update is ready. Finish any open edits, then update the app.';
+    showAvailable('A new version is ready. Finish any open edits, then update.');
   });
-
-  function watchInstall() {
-    if (!registration.installing) return;
-    waitForInstall(registration.installing).then(() => {
-      if (button.disabled) return;
-      showAvailable();
-      if (registration.waiting) status.textContent = 'An update is ready.';
-    });
-  }
-
   registration.addEventListener('updatefound', watchInstall);
   watchInstall();
   showAvailable();
-  $('#app-update').hidden = false;
-
-  button.addEventListener('click', async () => {
+  window.addEventListener('focus', () => checkForUpdate());
+  window.addEventListener('online', () => checkForUpdate(true));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkForUpdate(); });
+  setInterval(() => { if (!document.hidden) checkForUpdate(); }, 5 * 60 * 1000);
+  checkForUpdate(true);
+  button.addEventListener('click', () => {
+    if (applying || !available()) return;
+    if (dialog.open || saving) {
+      showAvailable('Finish your current edit, then update.');
+      return;
+    }
+    if (reloadAvailable) { location.reload(); return; }
+    if (!registration.waiting) { showAvailable(); return; }
+    applying = true;
     button.disabled = true;
+    status.textContent = 'Updating Grapleton…';
     try {
-      if (!reloadAvailable && !registration.waiting) {
-        status.textContent = 'Checking for updates…';
-        if (!navigator.onLine) throw new Error('Offline');
-        await registration.update();
-        const installing = registration.installing;
-        if (installing && await waitForInstall(installing) === 'redundant') {
-          throw new Error('Update download failed');
-        }
-      }
-      if (dialog.open || saving) {
-        status.textContent = 'Finish your edit, then try again.';
-      } else if (reloadAvailable) {
-        location.reload();
-        return;
-      } else if (registration.waiting) {
-        applying = true;
-        status.textContent = 'Updating Grapleton…';
-        registration.waiting.postMessage('grapleton:apply-update');
-        activationTimeout = setTimeout(() => {
-          applying = false;
-          button.disabled = false;
-          showAvailable();
-          status.textContent = 'The update is taking longer than expected. Try again shortly.';
-        }, 10000);
-        return;
-      } else {
-        status.textContent = 'Grapleton is up to date.';
-      }
+      registration.waiting.postMessage('grapleton:apply-update');
+      activationTimeout = setTimeout(() => {
+        applying = false;
+        button.disabled = false;
+        showAvailable('The update is taking longer than expected. Try again shortly.');
+      }, 10000);
     } catch {
       applying = false;
-      status.textContent = 'Could not check for updates. Try again when you’re online.';
+      button.disabled = false;
+      showAvailable('Could not apply the update. Please try again.');
     }
-    showAvailable();
-    button.disabled = false;
   });
 }
 
